@@ -18,7 +18,13 @@ function stubViewport(width: number) {
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
    } as unknown as MediaQueryList;
-   vi.spyOn(window, 'matchMedia').mockImplementation(() => mql);
+   const matchMedia = vi.fn(() => mql);
+   Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMedia,
+   });
+   return matchMedia;
 }
 
 describe('useIsMobile', () => {
@@ -35,8 +41,8 @@ describe('useIsMobile', () => {
    });
 
    it('subscribes to matchMedia for the mobile query', () => {
-      stubViewport(1024);
+      const matchMedia = stubViewport(1024);
       renderHook(() => useIsMobile());
-      expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 767px)');
+      expect(matchMedia).toHaveBeenCalledWith('(max-width: 767px)');
    });
 });
