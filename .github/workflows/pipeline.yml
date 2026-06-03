@@ -109,7 +109,7 @@ jobs:
               echo "IMAGE_GCP=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY_NAME }}/${{ env.SERVICE_NAME }}" >> "$GITHUB_ENV"
 
          - name: Log in ghcr.io
-           uses: docker/login-action@v5
+           uses: docker/login-action@v4
            with:
               registry: ghcr.io
               username: ${{ github.actor }}
