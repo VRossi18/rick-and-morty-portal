@@ -5,9 +5,11 @@
 <h1 align="center">Rick and Morty Portal</h1>
 
 <p align="center">
-  <a href="https://github.com/VRossi18/rick-morty-portal/actions/workflows/pipeline.yml">
-    <img src="https://github.com/VRossi18/rick-morty-portal/actions/workflows/pipeline.yml/badge.svg" alt="Pipeline status" />
-    <img src="https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/react-doctor.yml/badge.svg" alt="React doctor status">
+  <a href="https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/pipeline.yml">
+    <img src="https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/pipeline.yml/badge.svg" alt="Pipeline status" />
+  </a>
+  <a href="https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/react-doctor.yml">
+    <img src="https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/react-doctor.yml/badge.svg" alt="React Doctor status" />
   </a>
 </p>
 
@@ -17,19 +19,49 @@ A small **React** app that browses characters from the [Rick and Morty API](http
 
 ## Why this project exists
 
-The **primary goal** is to get comfortable with **GitHub Actions** in a real (but small) codebase: defining when workflows run, wiring Node and pnpm, splitting work across jobs, publishing to **GitHub Pages** and **Google Cloud**, and failing fast when lint or tests break. The UI is the fun part; the pipeline is the lesson.
+The **primary goal** is to get comfortable with **GitHub Actions** in a real (but small) codebase: defining when workflows run, wiring Node and pnpm, splitting work across jobs, publishing to **GitHub Pages** and **Google Cloud**, and failing fast when lint, tests, or **React Doctor** checks break. The UI is the fun part; the pipelines are the lesson.
 
 Beyond CI/CD, the project is meant to grow a **playable Rick and Morty–inspired RPG loop** where a **large language model** can help run a session (narration, rolls, or structured prompts tied to the character sheet). The current **`/rpg`** route includes point-buy creation, racial modifiers and drawbacks, a **cheat-sheet** of derived values (HP, physical/magical attack channels, social pool, DEX speed tiers, **stealth** with a small racial knack for Bird-Person and Parasites), per-race **skill sets** (two attacks, support, item with out-of-combat use), and **JSON export** (`schemaVersion` **3** in [`buildCharacterSheetExport`](src/components/rpg/buildCharacterSheetExport.ts)). It now also includes three one-click base presets (**Rick OP**, **Morty**, **Evil Morty**) that auto-fill name/race/scores, all modeled as **humans** with distinct preset portraits. The UI also offers **Create character**: confirm in a dialog, then a **summary sheet** with the full build, export from there, and a placeholder **Start game** control. Full 27-point spend and a character name are required before export or creation. The pipeline publishes a **sample JSON artifact** so the schema stays documented in CI. Successful **production deploys on `main`** bump an automatic **SemVer-style patch tag** (`v1.0.1`, `v1.0.2`, …) using [`.github/version-prefix`](.github/version-prefix). Future work can add session UI, an API/MCP surface, or richer prompts while keeping the static GitHub Pages story where possible.
+
+### Workflows overview
+
+| Workflow | File | Triggers |
+| -------- | ---- | -------- |
+| **Pipeline** | [`.github/workflows/pipeline.yml`](.github/workflows/pipeline.yml) | Push and pull request to `main` |
+| **React Doctor** | [`.github/workflows/react-doctor.yml`](.github/workflows/react-doctor.yml) | Push to `main` |
+
+Both run in parallel on every push to `main`; they do not depend on each other.
 
 ### What the pipeline does
 
 | Job                     | When                                                   | Steps                                                                                                              |
 | ----------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| **Lint and test**       | Every push and PR to `main`                            | `pnpm install` → `pnpm lint` → `pnpm test` → `server` tests → `pnpm run rpg:write-export-sample` → upload artifact |
+| **Lint and test**       | Every push and PR to `main`                            | `pnpm` → `pnpm lint` → `pnpm test` → `server` tests → `pnpm run rpg:write-export-sample` → upload artifact        |
 | **Build and audit**     | After lint and test succeed                            | `pnpm install` → `pnpm run build` (Pages: `VITE_AI_API_URL` from secrets) → `pnpm audit` → upload `dist`           |
 | **Deploy Cloud Run**    | After build, only on **`push` to `main`**              | Docker image (Node serves SPA + AI API) → GHCR → Artifact Registry → Cloud Run; smoke tests on `/health` and `/`   |
 | **Deploy GitHub Pages** | After build, only on **`push` to `main`**              | `actions/deploy-pages` publishes the uploaded artifact                                                             |
 | **Tag release (patch)** | After **both** deploys succeed on **`push` to `main`** | Reads [`.github/version-prefix`](.github/version-prefix), bumps patch tag (`v1.0.1`, …), pushes to origin          |
+
+### React Doctor workflow
+
+Runs on every **push to `main`** via [`millionco/react-doctor`](https://github.com/millionco/react-doctor) ([`react-doctor.yml`](.github/workflows/react-doctor.yml)).
+
+| Step | What happens |
+| ---- | ------------ |
+| Checkout | Clone the repo |
+| Scan | `react-doctor` analyzes the React app (security, performance, accessibility, bugs, maintainability) |
+| Report | Job annotations on changed lines; optional PR comment when the action is configured for it |
+| Gate | **Fails the workflow on `error` severity** (warnings do not block) |
+
+Run the same check locally:
+
+```bash
+npx react-doctor@latest --verbose
+npx react-doctor@latest --verbose --diff   # only files changed vs base branch
+npx react-doctor@latest --verbose --fail-on error
+```
+
+Docs: [react.doctor](https://react.doctor). The project also uses [`minimumReleaseAge`](pnpm-workspace.yaml) in `pnpm-workspace.yaml` (7 days) per React Doctor supply-chain guidance.
 
 The production build runs [`scripts/copy-404.mjs`](scripts/copy-404.mjs) after Vite so **`dist/404.html`** mirrors `index.html`. That helps the hosted SPA when users refresh or open a deep link. Unknown in-app routes are handled by a dedicated **404 page** (React Router catch-all `path="*"`), so client navigation to a missing path shows the themed UI instead of a blank outlet.
 
@@ -48,6 +80,12 @@ flowchart LR
       push[push to main]
       pr[pull request to main]
    end
+   subgraph reactDoctor [react-doctor on push to main]
+      scan[react-doctor scan]
+      gate[fail on error]
+      scan --> gate
+   end
+   push --> reactDoctor
    subgraph job1 [lint-and-test]
       install1[pnpm install]
       lint[pnpm lint]
@@ -83,7 +121,9 @@ flowchart LR
    job4 -->|both succeed| job5
 ```
 
-Workflow file: [`.github/workflows/pipeline.yml`](.github/workflows/pipeline.yml). In the repo **Settings → Pages**, the source should be **GitHub Actions** so the Pages deploy job can run. Configure the GCP secrets above for Cloud Run. The **tag-deploy** job sets **`contents: write`** only on that job so it can push tags; the rest of the workflow keeps the default `contents: read` where applicable.
+**Pipeline** file: [`.github/workflows/pipeline.yml`](.github/workflows/pipeline.yml). **React Doctor** file: [`.github/workflows/react-doctor.yml`](.github/workflows/react-doctor.yml).
+
+In the repo **Settings → Pages**, the source should be **GitHub Actions** so the Pages deploy job can run. Configure the GCP secrets above for Cloud Run. The **tag-deploy** job sets **`contents: write`** only on that job so it can push tags; the rest of the pipeline keeps the default `contents: read` where applicable. React Doctor requests **`pull-requests: write`** and **`issues: write`** for annotations and comments.
 
 ---
 
@@ -96,7 +136,7 @@ Workflow file: [`.github/workflows/pipeline.yml`](.github/workflows/pipeline.yml
 - **Styling:** Tailwind CSS 4, FlyonUI, `clsx` / `tailwind-merge`
 - **Data:** Axios (`GET /character`, `GET /episode`, and `GET /location` for lists, detail routes for each — see [`CharacterService`](src/services/characters.ts), [`EpisodeService`](src/services/episodes.ts), and [`LocationService`](src/services/locations.ts))
 - **i18n:** `i18next` + `react-i18next`, copy in [`src/locales/pt/common.json`](src/locales/pt/common.json) / [`src/locales/en/common.json`](src/locales/en/common.json), bootstrap in [`src/i18n.ts`](src/i18n.ts)
-- **Quality:** ESLint (flat config), Vitest, Testing Library, jsdom; **tsx** (dev) to run [`scripts/write-rpg-character-export-sample.ts`](scripts/write-rpg-character-export-sample.ts) for the CI JSON fixture
+- **Quality:** ESLint (flat config), Vitest, Testing Library, jsdom, **[React Doctor](https://react.doctor)** in CI ([`react-doctor.yml`](.github/workflows/react-doctor.yml)); **tsx** (dev) to run [`scripts/write-rpg-character-export-sample.ts`](scripts/write-rpg-character-export-sample.ts) for the CI JSON fixture
 - **Learning / experiments:** More real-world practice with the stack above; upcoming **LLM integration** (hosted APIs, structured prompts, or MCP) to support a **playable** tabletop-style loop alongside the UI
 
 ### Performance and React best practices
@@ -115,7 +155,7 @@ Front-end choices follow **[Vercel React Best Practices](https://skills.sh/verce
 - **Character detail** page: full fields from the API (status, species, type, gender, origin, location, episode count, created), loading and error handling (including 404); **origin** and **current location** link to **`/location/:id`** when the API provides a location URL
 - **Episodes** at **`/episodes`** — **season filter** (1–5) with **pagination scoped to the selected season** (API `episode=Sxx` when browsing by season; character multiselect still uses a client-side pass over the catalog). **Responsive grid** (episodes flow left-to-right by episode code, same palette, glow cards, Framer Motion transitions as the character grid), search by episode name, and **multi-select character filter** (AND logic — episode must include every selected character). **`/episode/:id`** shows air date, code, created timestamp, and linked characters with thumbnails.
 - **Locations** at **`/locations`** — paginated grid with **filters** by name (debounced), **type**, and **dimension** (API-backed selects). **`/location/:id`** shows type, dimension, resident count, **residents** linked to **`/character/:id`**, and **related episodes** derived from resident appearances (the API has no direct location→episode link; the UI explains this). Same glow cards and portal-style navigation as episodes.
-- **Character detail** at **`/character/:id`** — portrait, metadata, episode links, and an **AI curiosity card** below the image (OpenAI via BFF, initial fun fact + follow-up questions). See [`CharacterCuriosityPanel`](src/components/characters/CharacterCuriosityPanel.tsx) and [`docs/spec.md`](docs/spec.md)
+- **Character detail** at **`/character/:id`** — portrait, metadata, episode links, and an **AI curiosity card** below the image (Groq via BFF, initial fun fact + follow-up questions). See [`CharacterCuriosityPanel`](src/components/characters/CharacterCuriosityPanel.tsx) and [`docs/spec.md`](docs/spec.md)
 - Loading and error states on the list
 - **About me** page at **`/about`** (author bio, portrait, contact / social links)
 - **Donations modal** — navbar **Support / Apoiar** opens a dialog with an educational disclaimer (donations optional), **Crypto** tab on **Polygon** via **wagmi** + contract `donate()` payable, and a **PIX / Stripe** tab placeholder for future fiat flows. See [`DonationModal`](src/components/donations/DonationModal.tsx) and [`docs/donations-contract.md`](docs/donations-contract.md)
@@ -165,8 +205,8 @@ VITE_WALLETCONNECT_PROJECT_ID=
 **Prerequisites:** Node **24** or newer, **pnpm** 10 (within the range declared in `package.json`).
 
 ```bash
-git clone https://github.com/VRossi18/rick-morty-portal.git
-cd rick-morty-portal
+git clone https://github.com/VRossi18/rick-and-morty-portal.git
+cd rick-and-morty-portal
 pnpm install
 pnpm dev
 ```
@@ -187,4 +227,4 @@ To try the 404 page locally, open any path that is not registered (for example `
 | `pnpm test:watch`              | Run Vitest in watch mode                                                                                                    |
 | `pnpm rpg:write-export-sample` | Write `artifacts/rpg-character-export.sample.json` (same schema as the UI export; used in CI for the downloadable artifact) |
 
-These mirror what runs in GitHub Actions so local results should match CI (the `404.html` step runs inside `pnpm build`; the sample JSON step runs in **Lint and test** after tests).
+These mirror what runs in GitHub Actions so local results should match CI (the `404.html` step runs inside `pnpm build`; the sample JSON step runs in **Lint and test** after tests). For React health checks, use `npx react-doctor@latest --verbose --fail-on error` (same gate as [`.github/workflows/react-doctor.yml`](.github/workflows/react-doctor.yml)).
