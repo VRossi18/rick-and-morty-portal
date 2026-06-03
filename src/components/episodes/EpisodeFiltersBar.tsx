@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { canGoToNextSeason, canGoToPreviousSeason, stepSeason } from '../../utils/episodeSeason';
@@ -89,7 +89,7 @@ export function EpisodeFiltersBar({
                className="relative min-h-[1.5rem] min-w-[10rem] overflow-hidden sm:min-h-[1.75rem]"
             >
                <AnimatePresence mode="popLayout" initial={false} custom={seasonDirection}>
-                  <motion.span
+                  <m.span
                      key={season}
                      custom={seasonDirection}
                      variants={seasonLabelVariants}
@@ -100,7 +100,7 @@ export function EpisodeFiltersBar({
                      className="block text-center text-sm font-bold uppercase tracking-wide text-[var(--text-color)] sm:text-base"
                   >
                      {t('episodes.filters.seasonCurrent', { season })}
-                  </motion.span>
+                  </m.span>
                </AnimatePresence>
             </div>
 

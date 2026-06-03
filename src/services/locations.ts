@@ -32,14 +32,20 @@ export const LocationService = {
    getLocations: async (
       page: number,
       filters: LocationListFilters = {},
+      signal?: AbortSignal,
    ): Promise<ApiResponse<Location>> => {
       const params = toApiParams(page, filters);
-      const { data } = await api.get<ApiResponse<Location>>('/location', { params });
+      const { data } = await api.get<ApiResponse<Location>>('/location', {
+         params,
+         ...(signal ? { signal } : {}),
+      });
       return data;
    },
 
-   getLocationById: async (id: number): Promise<Location> => {
-      const { data } = await api.get<Location>(`/location/${id}`);
+   getLocationById: async (id: number, signal?: AbortSignal): Promise<Location> => {
+      const { data } = signal
+         ? await api.get<Location>(`/location/${id}`, { signal })
+         : await api.get<Location>(`/location/${id}`);
       return data;
    },
 };

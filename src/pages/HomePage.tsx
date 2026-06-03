@@ -1,28 +1,22 @@
-import { isAxiosError } from 'axios';
-import { motion } from 'framer-motion';
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { startTransition, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CharacterCard } from '../components/characters/CharacterCard';
 import { CharacterFiltersBar } from '../components/characters/CharacterFiltersBar';
 import { HomeHero } from '../components/characters/HomeHero';
-import { CharacterService, type CharacterListFilters } from '../services/characters';
-import type { Character, Info } from '../types/api';
-
-const emptyInfo: Info = { count: 0, pages: 1, next: null, prev: null };
+import { PageMotionShell } from '../components/layout/PageMotionShell';
+import { useCharactersQuery } from '../hooks/queries/useCharactersQuery';
+import { useDebouncedName } from '../hooks/useDebouncedName';
+import { usePortalTransitionFocus } from '../hooks/usePortalTransitionFocus';
+import type { CharacterListFilters } from '../services/characters';
 
 export function HomePage() {
    const { t } = useTranslation('common');
-   const [characters, setCharacters] = useState<Character[]>([]);
-   const [loading, setLoading] = useState(true);
    const [page, setPage] = useState(1);
-   const [pageInfo, setPageInfo] = useState<Info | null>(null);
-   const [error, setError] = useState<string | null>(null);
-   const [transitionFocusId, setTransitionFocusId] = useState<number | null>(null);
-
-   const [nameDraft, setNameDraft] = useState('');
-   const [appliedName, setAppliedName] = useState('');
-   const lastCommittedName = useRef('');
+   const resetPage = useCallback(() => setPage(1), []);
+   const { nameDraft, setNameDraft, appliedName, resetName } = useDebouncedName({
+      onApply: resetPage,
+   });
+   const { handleBeforeNavigate, cardInteraction } = usePortalTransitionFocus();
 
    const [status, setStatus] = useState('');
    const [gender, setGender] = useState('');
@@ -39,16 +33,32 @@ export function HomePage() {
       [nameDraft, status, gender, species, type],
    );
 
+   const listFilters: CharacterListFilters = useMemo(
+      () => ({
+         ...(appliedName ? { name: appliedName } : {}),
+         ...(status ? { status } : {}),
+         ...(gender ? { gender } : {}),
+         ...(species.trim() ? { species: species.trim() } : {}),
+         ...(type.trim() ? { type: type.trim() } : {}),
+      }),
+      [appliedName, status, gender, species, type],
+   );
+
+   const { data, isLoading, isFetching, isError } = useCharactersQuery(page, listFilters);
+
+   const characters = data?.results ?? [];
+   const pageInfo = data?.info ?? null;
+   const loading = isLoading || isFetching;
+   const error = isError ? t('home.errorLoad') : null;
+
    const clearAllFilters = useCallback(() => {
-      lastCommittedName.current = '';
-      setNameDraft('');
-      setAppliedName('');
+      resetName();
       setStatus('');
       setGender('');
       setSpecies('');
       setType('');
       setPage(1);
-   }, []);
+   }, [resetName]);
 
    const handleStatusChange = useCallback((v: string) => {
       setStatus(v);
@@ -70,114 +80,31 @@ export function HomePage() {
       setPage(1);
    }, []);
 
-   useEffect(() => {
-      const id = window.setTimeout(() => {
-         const next = nameDraft.trim();
-         if (lastCommittedName.current !== next) {
-            lastCommittedName.current = next;
-            startTransition(() => {
-               setAppliedName(next);
-               setPage(1);
-            });
-         }
-      }, 380);
-      return () => window.clearTimeout(id);
-   }, [nameDraft]);
-
-   const listFilters: CharacterListFilters = useMemo(
-      () => ({
-         ...(appliedName ? { name: appliedName } : {}),
-         ...(status ? { status } : {}),
-         ...(gender ? { gender } : {}),
-         ...(species.trim() ? { species: species.trim() } : {}),
-         ...(type.trim() ? { type: type.trim() } : {}),
-      }),
-      [appliedName, status, gender, species, type],
-   );
-
-   useEffect(() => {
-      let isMounted = true;
-
-      const loadData = async () => {
-         setLoading(true);
-         setError(null);
-
-         try {
-            const data = await CharacterService.getCharacters(page, listFilters);
-
-            if (!isMounted) {
-               return;
-            }
-
-            startTransition(() => {
-               setCharacters(data.results);
-               setPageInfo(data.info);
-            });
-         } catch (err) {
-            if (!isMounted) {
-               return;
-            }
-
-            if (isAxiosError(err) && err.response?.status === 404) {
-               startTransition(() => {
-                  setCharacters([]);
-                  setPageInfo(emptyInfo);
-                  setError(null);
-               });
-            } else {
-               console.error('Erro ao carregar personagens:', err);
-               startTransition(() => {
-                  setError(t('home.errorLoad'));
-               });
-            }
-         } finally {
-            if (isMounted) {
-               startTransition(() => {
-                  setLoading(false);
-               });
-            }
-         }
-      };
-
-      void loadData();
-
-      return () => {
-         isMounted = false;
-      };
-   }, [page, listFilters, t]);
-
-   const handleBeforeNavigate = useCallback((id: number) => {
-      flushSync(() => {
-         setTransitionFocusId(id);
-      });
-   }, []);
+   const canGoPrevious = Boolean(pageInfo?.prev);
+   const canGoNext = Boolean(pageInfo?.next);
 
    const goToPreviousPage = useCallback(() => {
-      if (pageInfo?.prev) {
-         startTransition(() => {
-            setPage((currentPage) => currentPage - 1);
-         });
+      if (!canGoPrevious) {
+         return;
       }
-   }, [pageInfo?.prev]);
+      startTransition(() => {
+         setPage((currentPage) => currentPage - 1);
+      });
+   }, [canGoPrevious]);
 
    const goToNextPage = useCallback(() => {
-      if (pageInfo?.next) {
-         startTransition(() => {
-            setPage((currentPage) => currentPage + 1);
-         });
+      if (!canGoNext) {
+         return;
       }
-   }, [pageInfo?.next]);
+      startTransition(() => {
+         setPage((currentPage) => currentPage + 1);
+      });
+   }, [canGoNext]);
 
    const showEmptyResults = !loading && !error && characters.length === 0;
 
    return (
-      <motion.div
-         className="min-h-screen bg-[var(--bg-color)] transition-colors duration-300"
-         initial={{ opacity: 0 }}
-         animate={{ opacity: 1 }}
-         exit={{ opacity: 0 }}
-         transition={{ duration: 0.28, ease: 'easeOut' }}
-      >
+      <PageMotionShell>
          <HomeHero />
          <main className="mx-auto max-w-[1400px] px-6 pb-20">
             <CharacterFiltersBar
@@ -213,22 +140,14 @@ export function HomePage() {
                   <div
                      className={`character-grid grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 ${loading ? 'pointer-events-none opacity-45' : ''}`}
                   >
-                     {characters.map((char) => {
-                        const interaction =
-                           transitionFocusId === null
-                              ? 'normal'
-                              : transitionFocusId === char.id
-                                ? 'source'
-                                : 'dimmed';
-                        return (
-                           <CharacterCard
-                              key={char.id}
-                              character={char}
-                              interaction={interaction}
-                              onBeforeNavigate={handleBeforeNavigate}
-                           />
-                        );
-                     })}
+                     {characters.map((char) => (
+                        <CharacterCard
+                           key={char.id}
+                           character={char}
+                           interaction={cardInteraction(char.id)}
+                           onBeforeNavigate={handleBeforeNavigate}
+                        />
+                     ))}
                   </div>
                )}
 
@@ -269,6 +188,6 @@ export function HomePage() {
                {t('home.pagination.next')}
             </button>
          </footer>
-      </motion.div>
+      </PageMotionShell>
    );
 }

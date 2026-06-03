@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -13,7 +13,7 @@ export function NotFoundPage() {
    }, [t, i18n.language]);
 
    return (
-      <motion.section
+      <m.section
          aria-label={t('notFound.sectionAria')}
          className="not-found-page relative flex w-full flex-1 items-center justify-center overflow-hidden px-4"
          style={{ '--not-found-portal-url': `url('${PORTAL_SRC}')` } as React.CSSProperties}
@@ -23,7 +23,7 @@ export function NotFoundPage() {
          transition={{ duration: 0.28, ease: 'easeOut' }}
       >
          <div className="not-found-space" aria-hidden />
-         <motion.div
+         <m.div
             className="not-found-wrapper"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -36,7 +36,7 @@ export function NotFoundPage() {
             <Link className="not-found-home" to="/characters">
                {t('notFound.home')}
             </Link>
-         </motion.div>
-      </motion.section>
+         </m.div>
+      </m.section>
    );
 }

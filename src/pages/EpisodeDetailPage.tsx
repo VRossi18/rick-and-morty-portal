@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useParams } from 'react-router-dom';
@@ -91,7 +91,7 @@ export function EpisodeDetailPage() {
    }, [id, invalidId]);
 
    return (
-      <motion.div
+      <m.div
          className="relative min-h-screen overflow-x-hidden bg-[var(--bg-color)] text-[var(--text-color)]"
          initial={{ opacity: 0 }}
          animate={{ opacity: 1 }}
@@ -99,7 +99,7 @@ export function EpisodeDetailPage() {
          transition={{ duration: 0.25, ease: 'easeOut' }}
       >
          {portal ? (
-            <motion.div
+            <m.div
                aria-hidden
                className="pointer-events-none fixed inset-0 z-0 mix-blend-screen"
                style={{
@@ -196,6 +196,6 @@ export function EpisodeDetailPage() {
                ) : null}
             </div>
          </div>
-      </motion.div>
+      </m.div>
    );
 }

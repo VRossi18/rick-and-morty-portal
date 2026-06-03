@@ -6,6 +6,7 @@ import type { ApiResponse, Episode } from '../../types/api';
 import { CharacterService } from '../../services/characters';
 import { EpisodeService } from '../../services/episodes';
 import { EpisodesPage } from '../../pages/EpisodesPage';
+import { TestProviders } from '../TestProviders';
 
 vi.mock('../../services/episodes', () => ({
    EpisodeService: {
@@ -39,10 +40,17 @@ const listPayload: ApiResponse<Episode> = {
 
 function renderEpisodes() {
    return render(
-      <MemoryRouter>
-         <EpisodesPage />
-      </MemoryRouter>,
+      <TestProviders>
+         <MemoryRouter>
+            <EpisodesPage />
+         </MemoryRouter>
+      </TestProviders>,
    );
+}
+
+function lastEpisodesCall() {
+   const call = mockedGetEpisodes.mock.calls.at(-1);
+   return call ? [call[0], call[1]] : undefined;
 }
 
 describe('EpisodesPage', () => {
@@ -78,7 +86,7 @@ describe('EpisodesPage', () => {
    it('loads season 1 episodes on mount with episode=S01 filter', async () => {
       renderEpisodes();
       await waitFor(() => {
-         expect(mockedGetEpisodes).toHaveBeenCalledWith(1, { episode: 'S01' });
+         expect(lastEpisodesCall()).toEqual([1, { episode: 'S01' }]);
       });
       expect(await screen.findByRole('heading', { name: 'Pilot' })).toBeInTheDocument();
    });
@@ -110,7 +118,7 @@ describe('EpisodesPage', () => {
       fireEvent.click(screen.getByRole('button', { name: i18n.t('episodes.filters.seasonNext') }));
 
       await waitFor(() => {
-         expect(mockedGetEpisodes).toHaveBeenCalledWith(1, { episode: 'S02' });
+         expect(lastEpisodesCall()).toEqual([1, { episode: 'S02' }]);
       });
       expect(
          screen.getByText(i18n.t('episodes.filters.seasonCurrent', { season: 2 })),
@@ -216,7 +224,7 @@ describe('EpisodesPage', () => {
       fireEvent.click(clearBtn);
 
       await waitFor(() => {
-         expect(mockedGetEpisodes).toHaveBeenCalledWith(1, { episode: 'S02' });
+         expect(lastEpisodesCall()).toEqual([1, { episode: 'S02' }]);
       });
       expect(
          screen.getByText(i18n.t('episodes.filters.seasonCurrent', { season: 2 })),
@@ -256,6 +264,6 @@ describe('EpisodesPage', () => {
          await Promise.resolve();
       });
 
-      expect(mockedGetEpisodes).toHaveBeenCalledWith(1, { name: 'Pilot', episode: 'S01' });
+      expect(lastEpisodesCall()).toEqual([1, { name: 'Pilot', episode: 'S01' }]);
    });
 });

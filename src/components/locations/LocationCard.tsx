@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { memo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -51,7 +51,7 @@ function LocationCardInner({ location, interaction = 'normal', onBeforeNavigate 
            : { opacity: 1, scale: 1, filter: 'blur(0px)' as const, zIndex: 0 };
 
    return (
-      <motion.div
+      <m.div
          ref={ref}
          role="link"
          tabIndex={0}
@@ -80,7 +80,7 @@ function LocationCardInner({ location, interaction = 'normal', onBeforeNavigate 
                {t('locations.card.residentCount', { count: location.residents.length })}
             </p>
          </div>
-      </motion.div>
+      </m.div>
    );
 }
 

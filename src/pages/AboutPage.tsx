@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
    IconInstagram,
@@ -61,7 +61,7 @@ export function AboutPage() {
    const { t } = useTranslation('common');
 
    return (
-      <motion.section
+      <m.section
          aria-label={t('about.sectionAria')}
          className="min-h-[50vh] bg-[var(--bg-color)] px-4 py-10 md:py-14"
          initial={{ opacity: 0 }}
@@ -130,6 +130,6 @@ export function AboutPage() {
                </div>
             </div>
          </div>
-      </motion.section>
+      </m.section>
    );
 }

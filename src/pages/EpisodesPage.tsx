@@ -1,43 +1,31 @@
-import { isAxiosError } from 'axios';
-import { motion } from 'framer-motion';
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { startTransition, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SelectedCharacter } from '../components/episodes/CharacterMultiSelect';
 import { EpisodeCard } from '../components/episodes/EpisodeCard';
 import { EpisodeFiltersBar } from '../components/episodes/EpisodeFiltersBar';
 import { EpisodesHero } from '../components/episodes/EpisodesHero';
-import { EpisodeService, type EpisodeListFilters } from '../services/episodes';
-import type { Episode, Info } from '../types/api';
+import { PageMotionShell } from '../components/layout/PageMotionShell';
 import {
-   episodeIncludesAllCharacters,
-   fetchAllEpisodes,
-   paginateEpisodes,
-} from '../utils/episodeCharacters';
-import {
-   filterEpisodesBySeason,
-   seasonToApiFilter,
-   sortEpisodesByCode,
-} from '../utils/episodeSeason';
-
-const emptyInfo: Info = { count: 0, pages: 1, next: null, prev: null };
+   mergeEpisodesQueryResults,
+   useEpisodesCharacterFilterQuery,
+   useEpisodesListQuery,
+} from '../hooks/queries/useEpisodesQuery';
+import { useDebouncedName } from '../hooks/useDebouncedName';
+import { usePortalTransitionFocus } from '../hooks/usePortalTransitionFocus';
+import type { EpisodeListFilters } from '../services/episodes';
+import { seasonToApiFilter } from '../utils/episodeSeason';
 
 const DEFAULT_SEASON = 1;
 
 export function EpisodesPage() {
    const { t } = useTranslation('common');
-   const [episodes, setEpisodes] = useState<Episode[]>([]);
-   const [loading, setLoading] = useState(true);
    const [page, setPage] = useState(1);
-   const [pageInfo, setPageInfo] = useState<Info | null>(null);
-   const [error, setError] = useState<string | null>(null);
-   const [transitionFocusId, setTransitionFocusId] = useState<number | null>(null);
-
    const [season, setSeason] = useState(DEFAULT_SEASON);
-   const [nameDraft, setNameDraft] = useState('');
-   const [appliedName, setAppliedName] = useState('');
-   const lastCommittedName = useRef('');
-
+   const resetPage = useCallback(() => setPage(1), []);
+   const { nameDraft, setNameDraft, appliedName, resetName } = useDebouncedName({
+      onApply: resetPage,
+   });
+   const { handleBeforeNavigate, cardInteraction } = usePortalTransitionFocus();
    const [selectedCharacters, setSelectedCharacters] = useState<SelectedCharacter[]>([]);
 
    const selectedCharacterIds = useMemo(
@@ -45,18 +33,43 @@ export function EpisodesPage() {
       [selectedCharacters],
    );
 
+   const useCharacterFilter = selectedCharacterIds.length > 0;
+
    const hasActiveFilters = useMemo(
       () => nameDraft.trim() !== '' || selectedCharacters.length > 0,
       [nameDraft, selectedCharacters.length],
    );
 
+   const listFilters: EpisodeListFilters = useMemo(
+      () => ({
+         episode: seasonToApiFilter(season),
+         ...(appliedName ? { name: appliedName } : {}),
+      }),
+      [appliedName, season],
+   );
+
+   const listQuery = useEpisodesListQuery(page, listFilters, !useCharacterFilter);
+   const filterQuery = useEpisodesCharacterFilterQuery({
+      page,
+      season,
+      appliedName,
+      characterIds: selectedCharacterIds,
+      enabled: useCharacterFilter,
+   });
+
+   const activeQuery = useCharacterFilter ? filterQuery : listQuery;
+   const merged = mergeEpisodesQueryResults(filterQuery.data, listQuery.data, useCharacterFilter);
+
+   const episodes = merged.results;
+   const pageInfo = merged.info;
+   const loading = activeQuery.isLoading || activeQuery.isFetching;
+   const error = activeQuery.isError ? t('episodes.errorLoad') : null;
+
    const clearAllFilters = useCallback(() => {
-      lastCommittedName.current = '';
-      setNameDraft('');
-      setAppliedName('');
+      resetName();
       setSelectedCharacters([]);
       setPage(1);
-   }, []);
+   }, [resetName]);
 
    const handleSeasonChange = useCallback((value: number) => {
       setSeason(value);
@@ -68,126 +81,31 @@ export function EpisodesPage() {
       setPage(1);
    }, []);
 
-   useEffect(() => {
-      const id = window.setTimeout(() => {
-         const next = nameDraft.trim();
-         if (lastCommittedName.current !== next) {
-            lastCommittedName.current = next;
-            startTransition(() => {
-               setAppliedName(next);
-               setPage(1);
-            });
-         }
-      }, 380);
-      return () => window.clearTimeout(id);
-   }, [nameDraft]);
-
-   const listFilters: EpisodeListFilters = useMemo(
-      () => ({
-         episode: seasonToApiFilter(season),
-         ...(appliedName ? { name: appliedName } : {}),
-      }),
-      [appliedName, season],
-   );
-
-   useEffect(() => {
-      let isMounted = true;
-
-      const loadData = async () => {
-         setLoading(true);
-         setError(null);
-
-         try {
-            if (selectedCharacterIds.length > 0) {
-               const all = await fetchAllEpisodes(
-                  appliedName ? { name: appliedName } : {},
-               );
-               const forSeason = filterEpisodesBySeason(all, season);
-               const filtered = forSeason.filter((ep) =>
-                  episodeIncludesAllCharacters(ep, selectedCharacterIds),
-               );
-               const sorted = sortEpisodesByCode(filtered);
-               const paged = paginateEpisodes(sorted, page);
-
-               if (!isMounted) return;
-
-               startTransition(() => {
-                  setEpisodes(paged.results);
-                  setPageInfo(paged.info);
-               });
-            } else {
-               const data = await EpisodeService.getEpisodes(page, listFilters);
-
-               if (!isMounted) return;
-
-               startTransition(() => {
-                  setEpisodes(sortEpisodesByCode(data.results));
-                  setPageInfo(data.info);
-               });
-            }
-         } catch (err) {
-            if (!isMounted) return;
-
-            if (isAxiosError(err) && err.response?.status === 404) {
-               startTransition(() => {
-                  setEpisodes([]);
-                  setPageInfo(emptyInfo);
-                  setError(null);
-               });
-            } else {
-               console.error('Erro ao carregar episódios:', err);
-               startTransition(() => {
-                  setError(t('episodes.errorLoad'));
-               });
-            }
-         } finally {
-            if (isMounted) {
-               startTransition(() => {
-                  setLoading(false);
-               });
-            }
-         }
-      };
-
-      void loadData();
-
-      return () => {
-         isMounted = false;
-      };
-   }, [page, listFilters, selectedCharacterIds, season, appliedName, t]);
-
-   const handleBeforeNavigate = useCallback((id: number) => {
-      flushSync(() => {
-         setTransitionFocusId(id);
-      });
-   }, []);
+   const canGoPrevious = Boolean(pageInfo?.prev);
+   const canGoNext = Boolean(pageInfo?.next);
 
    const goToPreviousPage = useCallback(() => {
-      if (pageInfo?.prev) {
-         startTransition(() => {
-            setPage((currentPage) => currentPage - 1);
-         });
+      if (!canGoPrevious) {
+         return;
       }
-   }, [pageInfo?.prev]);
+      startTransition(() => {
+         setPage((currentPage) => currentPage - 1);
+      });
+   }, [canGoPrevious]);
 
    const goToNextPage = useCallback(() => {
-      if (pageInfo?.next) {
-         startTransition(() => {
-            setPage((currentPage) => currentPage + 1);
-         });
+      if (!canGoNext) {
+         return;
       }
-   }, [pageInfo?.next]);
+      startTransition(() => {
+         setPage((currentPage) => currentPage + 1);
+      });
+   }, [canGoNext]);
 
    const showEmptyResults = !loading && !error && episodes.length === 0;
 
    return (
-      <motion.div
-         className="min-h-screen bg-[var(--bg-color)] transition-colors duration-300"
-         initial={{ opacity: 0 }}
-         animate={{ opacity: 1 }}
-         exit={{ opacity: 0 }}
-         transition={{ duration: 0.28, ease: 'easeOut' }}
-      >
+      <PageMotionShell>
          <EpisodesHero />
          <main className="mx-auto max-w-[1400px] px-6 pb-20">
             <EpisodeFiltersBar
@@ -217,24 +135,16 @@ export function EpisodesPage() {
                   </div>
                ) : (
                   <div
-                     className={`grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3 ${loading ? 'pointer-events-none opacity-45' : ''}`}
+                     className={`character-grid grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3 ${loading ? 'pointer-events-none opacity-45' : ''}`}
                   >
-                     {episodes.map((ep) => {
-                        const interaction =
-                           transitionFocusId === null
-                              ? 'normal'
-                              : transitionFocusId === ep.id
-                                ? 'source'
-                                : 'dimmed';
-                        return (
-                           <EpisodeCard
-                              key={ep.id}
-                              episode={ep}
-                              interaction={interaction}
-                              onBeforeNavigate={handleBeforeNavigate}
-                           />
-                        );
-                     })}
+                     {episodes.map((ep) => (
+                        <EpisodeCard
+                           key={ep.id}
+                           episode={ep}
+                           interaction={cardInteraction(ep.id)}
+                           onBeforeNavigate={handleBeforeNavigate}
+                        />
+                     ))}
                   </div>
                )}
 
@@ -279,6 +189,6 @@ export function EpisodesPage() {
                {t('episodes.pagination.next')}
             </button>
          </footer>
-      </motion.div>
+      </PageMotionShell>
    );
 }

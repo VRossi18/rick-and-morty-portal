@@ -51,5 +51,5 @@ export function compareEpisodeCodes(a: string, b: string): number {
 }
 
 export function sortEpisodesByCode(episodes: Episode[]): Episode[] {
-   return [...episodes].sort((a, b) => compareEpisodeCodes(a.episode, b.episode));
+   return episodes.toSorted((a, b) => compareEpisodeCodes(a.episode, b.episode));
 }

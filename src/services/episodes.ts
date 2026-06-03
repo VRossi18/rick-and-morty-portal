@@ -27,18 +27,24 @@ export const EpisodeService = {
    getEpisodes: async (
       page: number,
       filters: EpisodeListFilters = {},
+      signal?: AbortSignal,
    ): Promise<ApiResponse<Episode>> => {
       const params = toApiParams(page, filters);
-      const { data } = await api.get<ApiResponse<Episode>>('/episode', { params });
+      const { data } = await api.get<ApiResponse<Episode>>('/episode', {
+         params,
+         ...(signal ? { signal } : {}),
+      });
       return data;
    },
 
-   getEpisodeById: async (id: number): Promise<Episode> => {
-      const { data } = await api.get<Episode>(`/episode/${id}`);
+   getEpisodeById: async (id: number, signal?: AbortSignal): Promise<Episode> => {
+      const { data } = signal
+         ? await api.get<Episode>(`/episode/${id}`, { signal })
+         : await api.get<Episode>(`/episode/${id}`);
       return data;
    },
 
-   getMultipleEpisodes: async (ids: number[]): Promise<Episode[]> => {
+   getMultipleEpisodes: async (ids: number[], signal?: AbortSignal): Promise<Episode[]> => {
       if (ids.length === 0) {
          return [];
       }
@@ -46,7 +52,10 @@ export const EpisodeService = {
       const chunks = chunkArray(ids, API_CHUNK_SIZE);
       const batches = await Promise.all(
          chunks.map(async (chunk) => {
-            const { data } = await api.get<Episode | Episode[]>(`/episode/${chunk.join(',')}`);
+            const path = `/episode/${chunk.join(',')}`;
+            const { data } = signal
+               ? await api.get<Episode | Episode[]>(path, { signal })
+               : await api.get<Episode | Episode[]>(path);
             return Array.isArray(data) ? data : [data];
          }),
       );

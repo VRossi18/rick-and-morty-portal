@@ -1,6 +1,8 @@
 import clsx from 'clsx';
-import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDebouncedName } from '../../hooks/useDebouncedName';
 import { CharacterService } from '../../services/characters';
 import type { Character } from '../../types/api';
 
@@ -19,50 +21,20 @@ export function CharacterMultiSelect({ selected, onChange }: CharacterMultiSelec
    const listId = useId();
    const rootRef = useRef<HTMLDivElement>(null);
    const [open, setOpen] = useState(false);
-   const [queryDraft, setQueryDraft] = useState('');
-   const [appliedQuery, setAppliedQuery] = useState('');
-   const [options, setOptions] = useState<Character[]>([]);
-   const [loading, setLoading] = useState(false);
+   const { nameDraft: queryDraft, setNameDraft: setQueryDraft, appliedName: appliedQuery } =
+      useDebouncedName();
 
    const selectedIds = useMemo(() => new Set(selected.map((c) => c.id)), [selected]);
 
-   useEffect(() => {
-      const id = window.setTimeout(() => {
-         startTransition(() => setAppliedQuery(queryDraft.trim()));
-      }, 380);
-      return () => window.clearTimeout(id);
-   }, [queryDraft]);
+   const { data, isFetching } = useQuery({
+      queryKey: ['characters', 'multiselect', appliedQuery],
+      enabled: open,
+      queryFn: ({ signal }) =>
+         CharacterService.getCharacters(1, appliedQuery ? { name: appliedQuery } : {}, signal),
+   });
 
-   useEffect(() => {
-      if (!open) {
-         return;
-      }
-
-      let isMounted = true;
-
-      const load = async () => {
-         setLoading(true);
-         try {
-            const data = await CharacterService.getCharacters(
-               1,
-               appliedQuery ? { name: appliedQuery } : {},
-            );
-            if (!isMounted) return;
-            setOptions(data.results);
-         } catch {
-            if (!isMounted) return;
-            setOptions([]);
-         } finally {
-            if (isMounted) setLoading(false);
-         }
-      };
-
-      void load();
-
-      return () => {
-         isMounted = false;
-      };
-   }, [open, appliedQuery]);
+   const options: Character[] = data?.results ?? [];
+   const loading = isFetching;
 
    useEffect(() => {
       const onDocClick = (e: MouseEvent) => {
@@ -151,6 +123,7 @@ export function CharacterMultiSelect({ selected, onChange }: CharacterMultiSelec
                      value={queryDraft}
                      onChange={(e) => setQueryDraft(e.target.value)}
                      placeholder={t('episodes.filters.characterSearchPlaceholder')}
+                     aria-label={t('episodes.filters.characterSearchPlaceholder')}
                      autoComplete="off"
                      className="w-full rounded-lg border border-primary/30 bg-[var(--bg-color)] px-3 py-2 text-sm outline-none ring-primary/30 focus:border-primary focus:ring-2"
                   />

@@ -27,13 +27,24 @@ export function episodeIncludesAllCharacters(episode: Episode, characterIds: num
    return characterIds.every((id) => inEpisode.has(id));
 }
 
-export async function fetchAllEpisodes(filters: EpisodeListFilters = {}): Promise<Episode[]> {
-   const first = await EpisodeService.getEpisodes(1, filters);
+export async function fetchAllEpisodes(
+   filters: EpisodeListFilters = {},
+   signal?: AbortSignal,
+): Promise<Episode[]> {
+   const first = await EpisodeService.getEpisodes(1, filters, signal);
    const all = [...first.results];
 
-   for (let page = 2; page <= first.info.pages; page++) {
-      const data = await EpisodeService.getEpisodes(page, filters);
-      all.push(...data.results);
+   if (first.info.pages <= 1) {
+      return all;
+   }
+
+   const pageNumbers = Array.from({ length: first.info.pages - 1 }, (_, index) => index + 2);
+   const rest = await Promise.all(
+      pageNumbers.map((page) => EpisodeService.getEpisodes(page, filters, signal)),
+   );
+
+   for (const batch of rest) {
+      all.push(...batch.results);
    }
 
    return all;

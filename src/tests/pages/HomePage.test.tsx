@@ -5,6 +5,7 @@ import i18n from '../../i18n';
 import type { ApiResponse, Character } from '../../types/api';
 import { CharacterService } from '../../services/characters';
 import { HomePage } from '../../pages/HomePage';
+import { TestProviders } from '../TestProviders';
 
 vi.mock('../../services/characters', () => ({
    CharacterService: {
@@ -36,10 +37,17 @@ const listPayload: ApiResponse<Character> = {
 
 function renderHome() {
    return render(
-      <MemoryRouter>
-         <HomePage />
-      </MemoryRouter>,
+      <TestProviders>
+         <MemoryRouter>
+            <HomePage />
+         </MemoryRouter>
+      </TestProviders>,
    );
+}
+
+function lastCharacterListCall() {
+   const call = mockedGetCharacters.mock.calls.at(-1);
+   return call ? [call[0], call[1]] : undefined;
 }
 
 describe('HomePage', () => {
@@ -55,7 +63,7 @@ describe('HomePage', () => {
    it('loads characters on mount with page 1 and no filters', async () => {
       renderHome();
       await waitFor(() => {
-         expect(mockedGetCharacters).toHaveBeenCalledWith(1, {});
+         expect(lastCharacterListCall()).toEqual([1, {}]);
       });
       expect(await screen.findByRole('heading', { name: /Rick Sanchez/i })).toBeInTheDocument();
    });
@@ -87,7 +95,7 @@ describe('HomePage', () => {
       fireEvent.change(speciesSelect, { target: { value: 'Human' } });
 
       await waitFor(() => {
-         expect(mockedGetCharacters).toHaveBeenCalledWith(1, { species: 'Human' });
+         expect(lastCharacterListCall()).toEqual([1, { species: 'Human' }]);
       });
    });
 
@@ -100,7 +108,7 @@ describe('HomePage', () => {
       fireEvent.change(statusSelect, { target: { value: 'alive' } });
 
       await waitFor(() => {
-         expect(mockedGetCharacters).toHaveBeenCalledWith(1, { status: 'alive' });
+         expect(lastCharacterListCall()).toEqual([1, { status: 'alive' }]);
       });
    });
 
@@ -127,7 +135,7 @@ describe('HomePage', () => {
          await Promise.resolve();
       });
 
-      expect(mockedGetCharacters).toHaveBeenCalledWith(1, { name: 'Morty' });
+      expect(lastCharacterListCall()).toEqual([1, { name: 'Morty' }]);
    });
 
    it('clears all filters and refetches without params', async () => {
@@ -140,7 +148,7 @@ describe('HomePage', () => {
       const statusSelect = screen.getByLabelText(i18n.t('filters.statusLabel'));
       fireEvent.change(statusSelect, { target: { value: 'alive' } });
       await waitFor(() => {
-         expect(mockedGetCharacters).toHaveBeenCalledWith(1, { status: 'alive' });
+         expect(lastCharacterListCall()).toEqual([1, { status: 'alive' }]);
       });
 
       mockedGetCharacters.mockClear();
@@ -148,7 +156,7 @@ describe('HomePage', () => {
       fireEvent.click(clearBtn);
 
       await waitFor(() => {
-         expect(mockedGetCharacters).toHaveBeenCalledWith(1, {});
+         expect(lastCharacterListCall()).toEqual([1, {}]);
       });
       expect(statusSelect).toHaveValue('');
    });

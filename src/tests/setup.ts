@@ -1,7 +1,11 @@
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { afterEach } from 'vitest';
-import i18n, { LOCALE_STORAGE_KEY } from '../i18n';
+import i18n, { ensureLocaleBundle, LOCALE_STORAGE_KEY } from '../i18n';
+
+await ensureLocaleBundle('pt');
+await ensureLocaleBundle('en');
+await ensureLocaleBundle('es');
 
 if (!HTMLDialogElement.prototype.showModal) {
    HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {

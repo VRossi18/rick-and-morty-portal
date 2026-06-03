@@ -1,28 +1,22 @@
-import { isAxiosError } from 'axios';
-import { motion } from 'framer-motion';
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { startTransition, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LocationCard } from '../components/locations/LocationCard';
 import { LocationFiltersBar } from '../components/locations/LocationFiltersBar';
 import { LocationsHero } from '../components/locations/LocationsHero';
-import { LocationService, type LocationListFilters } from '../services/locations';
-import type { Info, Location } from '../types/api';
-
-const emptyInfo: Info = { count: 0, pages: 1, next: null, prev: null };
+import { PageMotionShell } from '../components/layout/PageMotionShell';
+import { useLocationsQuery } from '../hooks/queries/useLocationsQuery';
+import { useDebouncedName } from '../hooks/useDebouncedName';
+import { usePortalTransitionFocus } from '../hooks/usePortalTransitionFocus';
+import type { LocationListFilters } from '../services/locations';
 
 export function LocationsPage() {
    const { t } = useTranslation('common');
-   const [locations, setLocations] = useState<Location[]>([]);
-   const [loading, setLoading] = useState(true);
    const [page, setPage] = useState(1);
-   const [pageInfo, setPageInfo] = useState<Info | null>(null);
-   const [error, setError] = useState<string | null>(null);
-   const [transitionFocusId, setTransitionFocusId] = useState<number | null>(null);
-
-   const [nameDraft, setNameDraft] = useState('');
-   const [appliedName, setAppliedName] = useState('');
-   const lastCommittedName = useRef('');
+   const resetPage = useCallback(() => setPage(1), []);
+   const { nameDraft, setNameDraft, appliedName, resetName } = useDebouncedName({
+      onApply: resetPage,
+   });
+   const { handleBeforeNavigate, cardInteraction } = usePortalTransitionFocus();
 
    const [type, setType] = useState('');
    const [dimension, setDimension] = useState('');
@@ -32,14 +26,28 @@ export function LocationsPage() {
       [nameDraft, type, dimension],
    );
 
+   const listFilters: LocationListFilters = useMemo(
+      () => ({
+         ...(appliedName ? { name: appliedName } : {}),
+         ...(type ? { type } : {}),
+         ...(dimension ? { dimension } : {}),
+      }),
+      [appliedName, type, dimension],
+   );
+
+   const { data, isLoading, isFetching, isError } = useLocationsQuery(page, listFilters);
+
+   const locations = data?.results ?? [];
+   const pageInfo = data?.info ?? null;
+   const loading = isLoading || isFetching;
+   const error = isError ? t('locations.errorLoad') : null;
+
    const clearAllFilters = useCallback(() => {
-      lastCommittedName.current = '';
-      setNameDraft('');
-      setAppliedName('');
+      resetName();
       setType('');
       setDimension('');
       setPage(1);
-   }, []);
+   }, [resetName]);
 
    const handleTypeChange = useCallback((value: string) => {
       setType(value);
@@ -51,112 +59,31 @@ export function LocationsPage() {
       setPage(1);
    }, []);
 
-   useEffect(() => {
-      const id = window.setTimeout(() => {
-         const next = nameDraft.trim();
-         if (lastCommittedName.current !== next) {
-            lastCommittedName.current = next;
-            startTransition(() => {
-               setAppliedName(next);
-               setPage(1);
-            });
-         }
-      }, 380);
-      return () => window.clearTimeout(id);
-   }, [nameDraft]);
-
-   const listFilters: LocationListFilters = useMemo(
-      () => ({
-         ...(appliedName ? { name: appliedName } : {}),
-         ...(type ? { type } : {}),
-         ...(dimension ? { dimension } : {}),
-      }),
-      [appliedName, type, dimension],
-   );
-
-   useEffect(() => {
-      let isMounted = true;
-
-      const loadData = async () => {
-         setLoading(true);
-         setError(null);
-
-         try {
-            const data = await LocationService.getLocations(page, listFilters);
-
-            if (!isMounted) {
-               return;
-            }
-
-            startTransition(() => {
-               setLocations(data.results);
-               setPageInfo(data.info);
-            });
-         } catch (err) {
-            if (!isMounted) {
-               return;
-            }
-
-            if (isAxiosError(err) && err.response?.status === 404) {
-               startTransition(() => {
-                  setLocations([]);
-                  setPageInfo(emptyInfo);
-                  setError(null);
-               });
-            } else {
-               console.error('Erro ao carregar localizações:', err);
-               startTransition(() => {
-                  setError(t('locations.errorLoad'));
-               });
-            }
-         } finally {
-            if (isMounted) {
-               startTransition(() => {
-                  setLoading(false);
-               });
-            }
-         }
-      };
-
-      void loadData();
-
-      return () => {
-         isMounted = false;
-      };
-   }, [page, listFilters, t]);
-
-   const handleBeforeNavigate = useCallback((id: number) => {
-      flushSync(() => {
-         setTransitionFocusId(id);
-      });
-   }, []);
+   const canGoPrevious = Boolean(pageInfo?.prev);
+   const canGoNext = Boolean(pageInfo?.next);
 
    const goToPreviousPage = useCallback(() => {
-      if (pageInfo?.prev) {
-         startTransition(() => {
-            setPage((currentPage) => currentPage - 1);
-         });
+      if (!canGoPrevious) {
+         return;
       }
-   }, [pageInfo?.prev]);
+      startTransition(() => {
+         setPage((currentPage) => currentPage - 1);
+      });
+   }, [canGoPrevious]);
 
    const goToNextPage = useCallback(() => {
-      if (pageInfo?.next) {
-         startTransition(() => {
-            setPage((currentPage) => currentPage + 1);
-         });
+      if (!canGoNext) {
+         return;
       }
-   }, [pageInfo?.next]);
+      startTransition(() => {
+         setPage((currentPage) => currentPage + 1);
+      });
+   }, [canGoNext]);
 
    const showEmptyResults = !loading && !error && locations.length === 0;
 
    return (
-      <motion.div
-         className="min-h-screen bg-[var(--bg-color)] transition-colors duration-300"
-         initial={{ opacity: 0 }}
-         animate={{ opacity: 1 }}
-         exit={{ opacity: 0 }}
-         transition={{ duration: 0.28, ease: 'easeOut' }}
-      >
+      <PageMotionShell>
          <LocationsHero />
          <main className="mx-auto max-w-[1400px] px-6 pb-20">
             <LocationFiltersBar
@@ -186,24 +113,16 @@ export function LocationsPage() {
                   </div>
                ) : (
                   <div
-                     className={`grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3 ${loading ? 'pointer-events-none opacity-45' : ''}`}
+                     className={`character-grid grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3 ${loading ? 'pointer-events-none opacity-45' : ''}`}
                   >
-                     {locations.map((loc) => {
-                        const interaction =
-                           transitionFocusId === null
-                              ? 'normal'
-                              : transitionFocusId === loc.id
-                                ? 'source'
-                                : 'dimmed';
-                        return (
-                           <LocationCard
-                              key={loc.id}
-                              location={loc}
-                              interaction={interaction}
-                              onBeforeNavigate={handleBeforeNavigate}
-                           />
-                        );
-                     })}
+                     {locations.map((loc) => (
+                        <LocationCard
+                           key={loc.id}
+                           location={loc}
+                           interaction={cardInteraction(loc.id)}
+                           onBeforeNavigate={handleBeforeNavigate}
+                        />
+                     ))}
                   </div>
                )}
 
@@ -244,6 +163,6 @@ export function LocationsPage() {
                {t('locations.pagination.next')}
             </button>
          </footer>
-      </motion.div>
+      </PageMotionShell>
    );
 }

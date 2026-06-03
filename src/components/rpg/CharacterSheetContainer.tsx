@@ -3,13 +3,23 @@ import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildCharacterSheetExport } from './buildCharacterSheetExport';
 import type { CharacterSheetExportTranslate } from './buildCharacterSheetExport';
+import {
+   downloadJsonFile,
+   formatBonus,
+   mechanicalDrawbackParts,
+   raceSkillName,
+   raceSkillSummary,
+   slugForFilename,
+   totalToD20Mod,
+} from './characterSheetUiHelpers';
 import { BASE_SCORE, MAX_SCORE_BEFORE_RACE } from './characterCreationMath';
 import { CHARACTER_PRESETS } from './presets';
+import { RacePortrait } from './RacePortrait';
 import { buildDerivedSheet } from './rpgDerivedSheet';
 import { RACES, getRaceById } from './races';
 import { useCharacterCreation } from './useCharacterCreation';
 import { ABILITY_IDS } from './types';
-import type { AbilityId, AbilityScores, RaceDefinition, RaceId } from './types';
+import type { AbilityId, AbilityScores, RaceId } from './types';
 
 interface CharacterCreationSnapshot {
    characterName: string;
@@ -22,101 +32,6 @@ interface CharacterCreationSnapshot {
    spent: number;
    remaining: number;
    humanBonusChoices: [AbilityId, AbilityId];
-}
-
-function totalToD20Mod(total: number): number {
-   return Math.floor((total - 10) / 2);
-}
-
-function formatBonus(n: number): string {
-   if (n === 0) {
-      return '—';
-   }
-   return n > 0 ? `+${n}` : String(n);
-}
-
-/** Non-empty localized lines for each ability with a negative drawback on the sheet. */
-function mechanicalDrawbackParts(
-   sheetDrawback: Record<AbilityId, number>,
-   translate: (key: string) => string,
-): string[] {
-   const parts: string[] = [];
-   for (const id of ABILITY_IDS) {
-      const v = sheetDrawback[id];
-      if (v < 0) {
-         parts.push(`${translate(`rpg.abilities.${id}` as 'rpg.title')} ${formatBonus(v)}`);
-      }
-   }
-   return parts;
-}
-
-function RacePortrait({
-   race,
-   imageAlt,
-   imgClassName,
-   portraitUrl,
-}: {
-   race: RaceDefinition;
-   imageAlt: string;
-   imgClassName: string;
-   portraitUrl?: string;
-}) {
-   const [failedSrc, setFailedSrc] = useState<string | null>(null);
-   const resolvedSrc = portraitUrl ?? race.portraitUrl;
-
-   if (failedSrc === resolvedSrc) {
-      return (
-         <div className={clsx('h-full w-full', race.cardClass)} role="img" aria-label={imageAlt} />
-      );
-   }
-
-   return (
-      <img
-         src={resolvedSrc}
-         alt={imageAlt}
-         className={imgClassName}
-         loading="lazy"
-         decoding="async"
-         referrerPolicy="no-referrer"
-         onError={() => setFailedSrc(resolvedSrc)}
-      />
-   );
-}
-
-function downloadJsonFile(filename: string, data: unknown) {
-   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-   const url = URL.createObjectURL(blob);
-   const anchor = document.createElement('a');
-   anchor.href = url;
-   anchor.download = filename;
-   anchor.rel = 'noopener';
-   anchor.click();
-   URL.revokeObjectURL(url);
-}
-
-function raceSkillName(
-   t: (key: string) => string,
-   raceId: RaceId,
-   slot: 'attack1' | 'attack2' | 'support' | 'item',
-): string {
-   return t(`rpg.races.${raceId}.skills.${slot}.name` as 'rpg.title');
-}
-
-function raceSkillSummary(
-   t: (key: string) => string,
-   raceId: RaceId,
-   slot: 'attack1' | 'attack2' | 'support' | 'item',
-): string {
-   return t(`rpg.races.${raceId}.skills.${slot}.summary` as 'rpg.title');
-}
-
-function slugForFilename(name: string): string {
-   const s = name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-   return s.slice(0, 48) || 'character';
 }
 
 export function CharacterSheetContainer() {

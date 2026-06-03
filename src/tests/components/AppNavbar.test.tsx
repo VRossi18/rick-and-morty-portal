@@ -3,6 +3,16 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 
+vi.mock('../../services/characters', () => ({
+   CharacterService: { getCharacters: vi.fn().mockResolvedValue({ info: { count: 0, pages: 1, next: null, prev: null }, results: [] }) },
+}));
+vi.mock('../../services/episodes', () => ({
+   EpisodeService: { getEpisodes: vi.fn().mockResolvedValue({ info: { count: 0, pages: 1, next: null, prev: null }, results: [] }) },
+}));
+vi.mock('../../services/locations', () => ({
+   LocationService: { getLocations: vi.fn().mockResolvedValue({ info: { count: 0, pages: 1, next: null, prev: null }, results: [] }) },
+}));
+
 vi.mock('../../components/donations/lazyDonationModal', async () => {
    const { DonationModal } = await import('../../components/donations/DonationModal');
    return {
@@ -16,20 +26,23 @@ import { EpisodesPage } from '../../pages/EpisodesPage';
 import { HomePage } from '../../pages/HomePage';
 import { LocationsPage } from '../../pages/LocationsPage';
 import { RpgCharacterCreationPage } from '../../pages/RpgCharacterCreationPage';
+import { TestProviders } from '../TestProviders';
 
 function renderShell(initialPath: string) {
    return render(
-      <MemoryRouter initialEntries={[initialPath]}>
-         <Routes>
-            <Route path="/" element={<AppShell />}>
-               <Route path="characters" element={<HomePage />} />
-               <Route path="episodes" element={<EpisodesPage />} />
-               <Route path="locations" element={<LocationsPage />} />
-               <Route path="about" element={<AboutPage />} />
-               <Route path="rpg" element={<RpgCharacterCreationPage />} />
-            </Route>
-         </Routes>
-      </MemoryRouter>,
+      <TestProviders>
+         <MemoryRouter initialEntries={[initialPath]}>
+            <Routes>
+               <Route path="/" element={<AppShell />}>
+                  <Route path="characters" element={<HomePage />} />
+                  <Route path="episodes" element={<EpisodesPage />} />
+                  <Route path="locations" element={<LocationsPage />} />
+                  <Route path="about" element={<AboutPage />} />
+                  <Route path="rpg" element={<RpgCharacterCreationPage />} />
+               </Route>
+            </Routes>
+         </MemoryRouter>
+      </TestProviders>,
    );
 }
 

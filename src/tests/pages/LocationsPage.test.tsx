@@ -5,6 +5,7 @@ import i18n from '../../i18n';
 import type { ApiResponse, Location } from '../../types/api';
 import { LocationService } from '../../services/locations';
 import { LocationsPage } from '../../pages/LocationsPage';
+import { TestProviders } from '../TestProviders';
 
 vi.mock('../../services/locations', () => ({
    LocationService: {
@@ -31,10 +32,17 @@ const listPayload: ApiResponse<Location> = {
 
 function renderLocations() {
    return render(
-      <MemoryRouter>
-         <LocationsPage />
-      </MemoryRouter>,
+      <TestProviders>
+         <MemoryRouter>
+            <LocationsPage />
+         </MemoryRouter>
+      </TestProviders>,
    );
+}
+
+function lastLocationsCall() {
+   const call = mockedGetLocations.mock.calls.at(-1);
+   return call ? [call[0], call[1]] : undefined;
 }
 
 describe('LocationsPage', () => {
@@ -50,7 +58,7 @@ describe('LocationsPage', () => {
    it('loads locations on mount', async () => {
       renderLocations();
       await waitFor(() => {
-         expect(mockedGetLocations).toHaveBeenCalledWith(1, {});
+         expect(lastLocationsCall()).toEqual([1, {}]);
       });
       expect(await screen.findByText('Earth')).toBeInTheDocument();
    });
@@ -64,7 +72,7 @@ describe('LocationsPage', () => {
       });
 
       await waitFor(() => {
-         expect(mockedGetLocations).toHaveBeenCalledWith(1, { type: 'Planet' });
+         expect(lastLocationsCall()).toEqual([1, { type: 'Planet' }]);
       });
    });
 
@@ -76,13 +84,13 @@ describe('LocationsPage', () => {
          target: { value: 'Planet' },
       });
       await waitFor(() => {
-         expect(mockedGetLocations).toHaveBeenCalledWith(1, { type: 'Planet' });
+         expect(lastLocationsCall()).toEqual([1, { type: 'Planet' }]);
       });
 
       fireEvent.click(screen.getByRole('button', { name: i18n.t('locations.filters.clear') }));
 
       await waitFor(() => {
-         expect(mockedGetLocations).toHaveBeenLastCalledWith(1, {});
+         expect(lastLocationsCall()).toEqual([1, {}]);
       });
    });
 
@@ -109,6 +117,6 @@ describe('LocationsPage', () => {
          await Promise.resolve();
       });
 
-      expect(mockedGetLocations).toHaveBeenCalledWith(1, { name: 'Citadel' });
+      expect(lastLocationsCall()).toEqual([1, { name: 'Citadel' }]);
    });
 });

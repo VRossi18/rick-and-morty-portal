@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { memo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -59,7 +59,7 @@ function CharacterCardInner({ character, interaction = 'normal', onBeforeNavigat
            : { opacity: 1, scale: 1, filter: 'blur(0px)' as const, zIndex: 0 };
 
    return (
-      <motion.div
+      <m.div
          ref={ref}
          role="link"
          tabIndex={0}
@@ -101,7 +101,7 @@ function CharacterCardInner({ character, interaction = 'normal', onBeforeNavigat
                </p>
             </div>
          </div>
-      </motion.div>
+      </m.div>
    );
 }
 

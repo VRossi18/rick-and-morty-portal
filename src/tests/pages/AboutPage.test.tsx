@@ -2,15 +2,24 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import i18n from '../../i18n';
 import { AboutPage } from '../../pages/AboutPage';
+import { TestProviders } from '../TestProviders';
+
+function renderAbout() {
+   return render(
+      <TestProviders>
+         <AboutPage />
+      </TestProviders>,
+   );
+}
 
 describe('AboutPage', () => {
    it('renders name as main heading', () => {
-      render(<AboutPage />);
+      renderAbout();
       expect(screen.getByRole('heading', { level: 1, name: 'Vinicius Rossi' })).toBeInTheDocument();
    });
 
    it('renders portrait with accessible alt text', () => {
-      render(<AboutPage />);
+      renderAbout();
       expect(screen.getByRole('img', { name: i18n.t('about.portraitAlt') })).toHaveAttribute(
          'src',
          `${import.meta.env.BASE_URL}about/portrait.png`,
@@ -18,7 +27,7 @@ describe('AboutPage', () => {
    });
 
    it('renders mailto and external social links', () => {
-      render(<AboutPage />);
+      renderAbout();
       expect(screen.getByRole('link', { name: /Email/i })).toHaveAttribute(
          'href',
          'mailto:viniciusprossi18@gmail.com',

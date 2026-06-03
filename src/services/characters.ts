@@ -52,24 +52,30 @@ export const CharacterService = {
    getCharacters: async (
       page: number,
       filters: CharacterListFilters = {},
+      signal?: AbortSignal,
    ): Promise<ApiResponse<Character>> => {
       const params = toApiParams(page, filters);
-      const { data } = await api.get<ApiResponse<Character>>('/character', { params });
+      const { data } = await api.get<ApiResponse<Character>>('/character', {
+         params,
+         ...(signal ? { signal } : {}),
+      });
       return data;
    },
 
    /**
     * Obtém os detalhes de um único personagem pelo ID.
     */
-   getCharacterById: async (id: number): Promise<Character> => {
-      const { data } = await api.get<Character>(`/character/${id}`);
+   getCharacterById: async (id: number, signal?: AbortSignal): Promise<Character> => {
+      const { data } = signal
+         ? await api.get<Character>(`/character/${id}`, { signal })
+         : await api.get<Character>(`/character/${id}`);
       return data;
    },
 
    /**
     * Obtém múltiplos personagens simultaneamente através de um array de IDs.
     */
-   getMultipleCharacters: async (ids: number[]): Promise<Character[]> => {
+   getMultipleCharacters: async (ids: number[], signal?: AbortSignal): Promise<Character[]> => {
       if (ids.length === 0) {
          return [];
       }
@@ -77,9 +83,10 @@ export const CharacterService = {
       const chunks = chunkArray(ids, API_CHUNK_SIZE);
       const batches = await Promise.all(
          chunks.map(async (chunk) => {
-            const { data } = await api.get<Character | Character[]>(
-               `/character/${chunk.join(',')}`,
-            );
+            const path = `/character/${chunk.join(',')}`;
+            const { data } = signal
+               ? await api.get<Character | Character[]>(path, { signal })
+               : await api.get<Character | Character[]>(path);
             return Array.isArray(data) ? data : [data];
          }),
       );
