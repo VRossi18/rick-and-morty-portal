@@ -7,10 +7,9 @@
 <p align="center">
   <a href="https://github.com/VRossi18/rick-morty-portal/actions/workflows/pipeline.yml">
     <img src="https://github.com/VRossi18/rick-morty-portal/actions/workflows/pipeline.yml/badge.svg" alt="Pipeline status" />
+    <img src="https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/react-doctor.yml/badge.svg" alt="React doctor status">
   </a>
 </p>
-
-[![React Doctor](https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/react-doctor.yml/badge.svg)](https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/react-doctor.yml)
 
 A small **React** app that browses characters from the [Rick and Morty API](https://rickandmortyapi.com/), with a **character detail** view, client-side routing, and a portal-style transition between the grid and the detail screen. This repository doubles as a **hands-on sandbox for learning GitHub Actions**: workflows, jobs, automated deploys, and keeping `main` green with lint, tests, and security audit. Production is published to **GitHub Pages** and **Google Cloud Run** on every push to `main`. It is also a place to **go deeper with the stack** (React, TypeScript, Vite, routing, i18n, testing) and to **experiment with LLM-backed gameplay**—for example a GM or rules assistant grounded in the rules you encode in the app.
 
