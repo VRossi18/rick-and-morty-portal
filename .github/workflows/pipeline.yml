@@ -24,6 +24,12 @@ permissions:
    packages: write
 
 jobs:
+   react-doctor:
+      runs-on: ubuntu-latest
+      steps:
+         - uses: actions/checkout@v5
+         - uses: millionco/react-doctor@v1
+
    lint-and-test:
       name: Lint and test
       runs-on: ubuntu-latest
