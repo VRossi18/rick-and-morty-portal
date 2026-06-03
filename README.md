@@ -10,6 +10,8 @@
   </a>
 </p>
 
+[![React Doctor](https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/react-doctor.yml/badge.svg)](https://github.com/VRossi18/rick-and-morty-portal/actions/workflows/react-doctor.yml)
+
 A small **React** app that browses characters from the [Rick and Morty API](https://rickandmortyapi.com/), with a **character detail** view, client-side routing, and a portal-style transition between the grid and the detail screen. This repository doubles as a **hands-on sandbox for learning GitHub Actions**: workflows, jobs, automated deploys, and keeping `main` green with lint, tests, and security audit. Production is published to **GitHub Pages** and **Google Cloud Run** on every push to `main`. It is also a place to **go deeper with the stack** (React, TypeScript, Vite, routing, i18n, testing) and to **experiment with LLM-backed gameplay**—for example a GM or rules assistant grounded in the rules you encode in the app.
 
 ---
@@ -22,21 +24,21 @@ Beyond CI/CD, the project is meant to grow a **playable Rick and Morty–inspire
 
 ### What the pipeline does
 
-| Job                     | When                                                   | Steps                                                                                                                                       |
-| ----------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Job                     | When                                                   | Steps                                                                                                              |
+| ----------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | **Lint and test**       | Every push and PR to `main`                            | `pnpm install` → `pnpm lint` → `pnpm test` → `server` tests → `pnpm run rpg:write-export-sample` → upload artifact |
-| **Build and audit**     | After lint and test succeed                            | `pnpm install` → `pnpm run build` (Pages: `VITE_AI_API_URL` from secrets) → `pnpm audit` → upload `dist` |
-| **Deploy Cloud Run**    | After build, only on **`push` to `main`**              | Docker image (Node serves SPA + AI API) → GHCR → Artifact Registry → Cloud Run; smoke tests on `/health` and `/` |
-| **Deploy GitHub Pages** | After build, only on **`push` to `main`**              | `actions/deploy-pages` publishes the uploaded artifact                                                                                      |
-| **Tag release (patch)** | After **both** deploys succeed on **`push` to `main`** | Reads [`.github/version-prefix`](.github/version-prefix), bumps patch tag (`v1.0.1`, …), pushes to origin                                   |
+| **Build and audit**     | After lint and test succeed                            | `pnpm install` → `pnpm run build` (Pages: `VITE_AI_API_URL` from secrets) → `pnpm audit` → upload `dist`           |
+| **Deploy Cloud Run**    | After build, only on **`push` to `main`**              | Docker image (Node serves SPA + AI API) → GHCR → Artifact Registry → Cloud Run; smoke tests on `/health` and `/`   |
+| **Deploy GitHub Pages** | After build, only on **`push` to `main`**              | `actions/deploy-pages` publishes the uploaded artifact                                                             |
+| **Tag release (patch)** | After **both** deploys succeed on **`push` to `main`** | Reads [`.github/version-prefix`](.github/version-prefix), bumps patch tag (`v1.0.1`, …), pushes to origin          |
 
 The production build runs [`scripts/copy-404.mjs`](scripts/copy-404.mjs) after Vite so **`dist/404.html`** mirrors `index.html`. That helps the hosted SPA when users refresh or open a deep link. Unknown in-app routes are handled by a dedicated **404 page** (React Router catch-all `path="*"`), so client navigation to a missing path shows the themed UI instead of a blank outlet.
 
 ### Hosting (production)
 
-| Target               | What runs                                                                     | Notes                                                                              |
-| -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **GitHub Pages**     | Static `dist` from the main Vite build (`base`: `/rick-and-morty-portal/`)    | Project-site URL under the repo name                                               |
+| Target               | What runs                                                                                 | Notes                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **GitHub Pages**     | Static `dist` from the main Vite build (`base`: `/rick-and-morty-portal/`)                | Project-site URL under the repo name                            |
 | **Google Cloud Run** | Node container ([`Dockerfile`](Dockerfile)) on port **8080**: static `dist` + `/api/ai/*` | Build uses `VITE_BASE=/`; Groq (`LLM_*`) secrets on the service |
 
 Cloud Run requires GitHub Actions secrets: `GCP_*` (see table above), plus `LLM_API_KEY`, `ALLOWED_ORIGINS`, and for GitHub Pages `AI_API_URL`. See [`docs/spec.md`](docs/spec.md).
