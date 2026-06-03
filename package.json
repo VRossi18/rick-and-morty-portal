@@ -1,71 +1,73 @@
 {
-   "name": "rick-morty-portal",
-   "private": true,
-   "version": "0.0.0",
-   "type": "module",
-   "packageManager": "pnpm@10.15.0",
-   "engines": {
-      "node": ">=24",
-      "pnpm": ">=10.0.0 <11.0.0"
-   },
-   "scripts": {
-      "dev": "vite",
-      "predev:all": "pnpm --dir server install",
-      "dev:all": "concurrently -n server,web -c blue,green \"pnpm run server:dev\" \"pnpm dev\"",
-      "server:dev": "pnpm --dir server install && pnpm --dir server dev",
-      "build": "tsc -b && vite build && node ./scripts/copy-404.mjs",
-      "lint": "eslint .",
-      "preview": "vite preview",
-      "test": "vitest run",
-      "test:watch": "vitest",
-      "rpg:write-export-sample": "tsx scripts/write-rpg-character-export-sample.ts",
-      "server:build": "pnpm --dir server build",
-      "server:test": "pnpm --dir server test"
-   },
-   "pnpm": {
-      "overrides": {
-         "ws": ">=8.20.1"
-      }
-   },
-   "dependencies": {
-      "@tailwindcss/postcss": "^4.2.4",
-      "@tailwindcss/vite": "^4.2.4",
-      "@tanstack/react-query": "^5.100.11",
-      "axios": "^1.16.0",
-      "clsx": "^2.1.1",
-      "flyonui": "^2.4.1",
-      "framer-motion": "^12.38.0",
-      "i18next": "^26.1.0",
-      "react": "^19.2.5",
-      "react-dom": "^19.2.5",
-      "react-i18next": "^17.0.7",
-      "react-router-dom": "^7.15.0",
-      "tailwind-merge": "^3.5.0",
-      "tw-animate-css": "^1.4.0",
-      "viem": "^2.50.4",
-      "wagmi": "^3.6.15"
-   },
-   "devDependencies": {
-      "@eslint/js": "^10.0.1",
-      "@testing-library/jest-dom": "^6.9.1",
-      "@testing-library/react": "^16.3.0",
-      "@types/node": "^24.12.2",
-      "@types/react": "^19.2.14",
-      "@types/react-dom": "^19.2.3",
-      "@vitejs/plugin-react": "^6.0.1",
-      "autoprefixer": "^10.5.0",
-      "concurrently": "^9.2.1",
-      "eslint": "^10.2.1",
-      "eslint-plugin-react-hooks": "^7.1.1",
-      "eslint-plugin-react-refresh": "^0.5.2",
-      "globals": "^17.5.0",
-      "jsdom": "^26.1.0",
-      "postcss": "^8.5.14",
-      "tailwindcss": "^4.2.4",
-      "tsx": "^4.21.0",
-      "typescript": "~6.0.2",
-      "typescript-eslint": "^8.58.2",
-      "vite": "^8.0.10",
-      "vitest": "^3.2.4"
-   }
+  "name": "rick-morty-portal",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10.0.0 <11.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "predev:all": "pnpm --dir server install",
+    "dev:all": "concurrently -n server,web -c blue,green \"pnpm run server:dev\" \"pnpm dev\"",
+    "server:dev": "pnpm --dir server install && pnpm --dir server dev",
+    "build": "tsc -b && vite build && node ./scripts/copy-404.mjs",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "rpg:write-export-sample": "tsx scripts/write-rpg-character-export-sample.ts",
+    "server:build": "pnpm --dir server build",
+    "server:test": "pnpm --dir server test",
+    "doctor": "npx react-doctor@latest"
+  },
+  "pnpm": {
+    "overrides": {
+      "ws": ">=8.20.1"
+    }
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
+    "@tailwindcss/vite": "^4.2.4",
+    "@tanstack/react-query": "^5.100.11",
+    "axios": "^1.16.0",
+    "clsx": "^2.1.1",
+    "flyonui": "^2.4.1",
+    "framer-motion": "^12.38.0",
+    "i18next": "^26.1.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-i18next": "^17.0.7",
+    "react-router-dom": "^7.15.0",
+    "tailwind-merge": "^3.5.0",
+    "tw-animate-css": "^1.4.0",
+    "viem": "^2.50.4",
+    "wagmi": "^3.6.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.5.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "jsdom": "^26.1.0",
+    "postcss": "^8.5.14",
+    "react-doctor": "^0.2.16",
+    "tailwindcss": "^4.2.4",
+    "tsx": "^4.21.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.10",
+    "vitest": "^3.2.4"
+  }
 }
