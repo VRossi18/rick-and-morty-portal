@@ -8,6 +8,12 @@ import { EpisodeService } from '../../services/episodes';
 import type { Character, Episode } from '../../types/api';
 import { EpisodeDetailPage } from '../../pages/EpisodeDetailPage';
 
+vi.mock('../../components/episodes/EpisodeCuriosityPanel', () => ({
+   EpisodeCuriosityPanel: ({ episodeId }: { episodeId: number }) => (
+      <div data-testid="episode-curiosity-panel">curiosity-{episodeId}</div>
+   ),
+}));
+
 vi.mock('../../services/episodes', () => ({
    EpisodeService: {
       getEpisodeById: vi.fn(),
@@ -82,6 +88,7 @@ describe('EpisodeDetailPage', () => {
       expect(await screen.findByRole('heading', { name: 'Pilot' })).toBeInTheDocument();
       expect(screen.getByText('S01E01')).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Rick Sanchez' })).toBeInTheDocument();
+      expect(screen.getByTestId('episode-curiosity-panel')).toHaveTextContent('curiosity-1');
       expect(CharacterService.getMultipleCharacters).toHaveBeenCalledWith([1, 2]);
    });
 

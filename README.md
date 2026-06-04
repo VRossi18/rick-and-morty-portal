@@ -153,7 +153,7 @@ Front-end choices follow **[Vercel React Best Practices](https://skills.sh/verce
 - **Filters** — search by name (debounced), status, gender, species, and type (selects backed by the API catalog); wired to [`CharacterService.getCharacters`](src/services/characters.ts)
 - **Click a card** (`cursor: pointer`) to open **`/character/:id`**, with a short “portal” feel: other cards dim / ease aside, the image **animates into** the detail layout, and an optional radial overlay uses the click origin when navigation passes `location.state`
 - **Character detail** page: full fields from the API (status, species, type, gender, origin, location, episode count, created), loading and error handling (including 404); **origin** and **current location** link to **`/location/:id`** when the API provides a location URL
-- **Episodes** at **`/episodes`** — **season filter** (1–5) with **pagination scoped to the selected season** (API `episode=Sxx` when browsing by season; character multiselect still uses a client-side pass over the catalog). **Responsive grid** (episodes flow left-to-right by episode code, same palette, glow cards, Framer Motion transitions as the character grid), search by episode name, and **multi-select character filter** (AND logic — episode must include every selected character). **`/episode/:id`** shows air date, code, created timestamp, and linked characters with thumbnails.
+- **Episodes** at **`/episodes`** — **season filter** (1–5) with **pagination scoped to the selected season** (API `episode=Sxx` when browsing by season; character multiselect still uses a client-side pass over the catalog). **Responsive grid** (episodes flow left-to-right by episode code, same palette, glow cards, Framer Motion transitions as the character grid), search by episode name, and **multi-select character filter** (AND logic — episode must include every selected character). **`/episode/:id`** shows air date, code, created timestamp, linked characters with thumbnails, and an **AI curiosity card** (Groq via BFF). See [`EpisodeCuriosityPanel`](src/components/episodes/EpisodeCuriosityPanel.tsx) and [`docs/spec.md`](docs/spec.md)
 - **Locations** at **`/locations`** — paginated grid with **filters** by name (debounced), **type**, and **dimension** (API-backed selects). **`/location/:id`** shows type, dimension, resident count, **residents** linked to **`/character/:id`**, and **related episodes** derived from resident appearances (the API has no direct location→episode link; the UI explains this). Same glow cards and portal-style navigation as episodes.
 - **Character detail** at **`/character/:id`** — portrait, metadata, episode links, and an **AI curiosity card** below the image (Groq via BFF, initial fun fact + follow-up questions). See [`CharacterCuriosityPanel`](src/components/characters/CharacterCuriosityPanel.tsx) and [`docs/spec.md`](docs/spec.md)
 - Loading and error states on the list
@@ -172,13 +172,11 @@ Front-end choices follow **[Vercel React Best Practices](https://skills.sh/verce
 
 1. **LLM-playable tabletop RPG** — evolve **`/rpg`** into a session you can run with an LLM (session UI, richer prompts, optional small backend or MCP) while keeping the static app and GitHub Pages story in mind; JSON export is already the first integration surface for external tools
 
-2. **Detail page polish (characters & episodes)** — deepen **`/character/:id`** and **`/episode/:id`** beyond the current API fields: cross-links (e.g. from a character to episodes they appear in, from an episode back to filtered lists), optional portal-style transitions on episode detail similar to characters, and small UX tweaks (skeletons, retry, shared layout blocks) so both detail screens feel like one product surface
+2. **Detail page polish (characters & episodes)** — deepen **`/character/:id`** and **`/episode/:id`** beyond the current API fields: cross-links, optional portal-style transitions on episode detail similar to characters, and small UX tweaks (skeletons, retry, shared layout blocks)
 
-3. **AI curiosities (episodes)** — extend the BFF pattern from character detail to **`/episode/:id`** (character curiosities are live; see [`docs/spec.md`](docs/spec.md))
+3. **Donations (Stripe / PIX)** — wire the existing modal fiat tab to **Stripe** (PIX first, international cards later): Checkout or Payment Element, preset amounts, backend/session endpoint, webhooks (secrets never in the SPA bundle)
 
-4. **Donations (Stripe / PIX)** — wire the existing modal fiat tab to **Stripe** (PIX first, international cards later): Checkout or Payment Element, preset amounts, backend/session endpoint, webhooks (secrets never in the SPA bundle)
-
-5. **Donations (crypto enhancements)** — WalletConnect, optional on-chain donation history, and contract deploy automation beyond the current Polygon + injected-wallet flow
+4. **Donations (crypto enhancements)** — WalletConnect, optional on-chain donation history, and contract deploy automation beyond the current Polygon + injected-wallet flow
 
 ### Donations (local dev)
 
@@ -196,7 +194,7 @@ VITE_WALLETCONNECT_PROJECT_ID=
 
 3. Run `pnpm dev`, click **Apoiar / Support** in the navbar, connect MetaMask on Polygon, and send a test donation.
 
-**AI curiosities:** copy [`.env.example`](.env.example) to `.env`, set `LLM_API_KEY` (Groq) and `VITE_AI_API_URL=/api/ai/character-curiosity`, then run `pnpm run dev:all`. See [`docs/spec.md`](docs/spec.md).
+**AI curiosities:** copy [`.env.example`](.env.example) to `.env`, set `LLM_API_KEY` (Groq) and `VITE_AI_API_URL=/api/ai/character-curiosity` (episode endpoint is derived automatically). Then run `pnpm run dev:all`. See [`docs/spec.md`](docs/spec.md).
 
 ---
 

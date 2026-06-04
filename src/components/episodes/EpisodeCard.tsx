@@ -75,9 +75,7 @@ function EpisodeCardInner({ episode, interaction = 'normal', onBeforeNavigate }:
             <p>
                <span className="opacity-60">{t('episodes.card.airDate')}</span> {episode.air_date}
             </p>
-            <p>
-               {t('episodes.card.characterCount', { count: episode.characters.length })}
-            </p>
+            <p>{t('episodes.card.characterCount', { count: episode.characters.length })}</p>
          </div>
       </m.div>
    );

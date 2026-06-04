@@ -2,10 +2,15 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { aiRoutes } from './ai.js';
 
-const mockGenerate = vi.fn();
+const mockGenerateCharacter = vi.fn();
+const mockGenerateEpisode = vi.fn();
 
 vi.mock('../services/openaiCharacterCuriosity.js', () => ({
-   generateCharacterCuriosity: (...args: unknown[]) => mockGenerate(...args),
+   generateCharacterCuriosity: (...args: unknown[]) => mockGenerateCharacter(...args),
+}));
+
+vi.mock('../services/openaiEpisodeCuriosity.js', () => ({
+   generateEpisodeCuriosity: (...args: unknown[]) => mockGenerateEpisode(...args),
 }));
 
 function createApp() {
@@ -14,9 +19,9 @@ function createApp() {
    return app;
 }
 
-describe('aiRoutes', () => {
+describe('aiRoutes character-curiosity', () => {
    beforeEach(() => {
-      mockGenerate.mockReset();
+      mockGenerateCharacter.mockReset();
    });
 
    it('returns 400 for invalid body', async () => {
@@ -30,7 +35,7 @@ describe('aiRoutes', () => {
    });
 
    it('returns curiosity text on success', async () => {
-      mockGenerate.mockResolvedValue({ text: 'Fun fact', cached: false });
+      mockGenerateCharacter.mockResolvedValue({ text: 'Fun fact', cached: false });
       const app = createApp();
       const response = await app.request('/api/ai/character-curiosity', {
          method: 'POST',
@@ -42,7 +47,7 @@ describe('aiRoutes', () => {
    });
 
    it('returns 503 when LLM is not configured', async () => {
-      mockGenerate.mockRejectedValue(new Error('LLM_NOT_CONFIGURED'));
+      mockGenerateCharacter.mockRejectedValue(new Error('LLM_NOT_CONFIGURED'));
       const app = createApp();
       const response = await app.request('/api/ai/character-curiosity', {
          method: 'POST',
@@ -53,7 +58,7 @@ describe('aiRoutes', () => {
    });
 
    it('returns 429 on rate limit', async () => {
-      mockGenerate.mockRejectedValue(new Error('LLM_RATE_LIMIT'));
+      mockGenerateCharacter.mockRejectedValue(new Error('LLM_RATE_LIMIT'));
       const app = createApp();
       const response = await app.request('/api/ai/character-curiosity', {
          method: 'POST',
@@ -61,5 +66,55 @@ describe('aiRoutes', () => {
          body: JSON.stringify({ characterId: 2, locale: 'en' }),
       });
       expect(response.status).toBe(429);
+   });
+});
+
+describe('aiRoutes episode-curiosity', () => {
+   beforeEach(() => {
+      mockGenerateEpisode.mockReset();
+   });
+
+   it('returns 400 for invalid body', async () => {
+      const app = createApp();
+      const response = await app.request('/api/ai/episode-curiosity', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ episodeId: 0, locale: 'pt' }),
+      });
+      expect(response.status).toBe(400);
+   });
+
+   it('returns curiosity text on success', async () => {
+      mockGenerateEpisode.mockResolvedValue({ text: 'Episode fact', cached: true });
+      const app = createApp();
+      const response = await app.request('/api/ai/episode-curiosity', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ episodeId: 1, locale: 'es' }),
+      });
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ text: 'Episode fact', cached: true });
+   });
+
+   it('returns 404 when episode is not found', async () => {
+      mockGenerateEpisode.mockRejectedValue(new Error('EPISODE_NOT_FOUND'));
+      const app = createApp();
+      const response = await app.request('/api/ai/episode-curiosity', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ episodeId: 999, locale: 'en' }),
+      });
+      expect(response.status).toBe(404);
+   });
+
+   it('returns 503 when LLM is not configured', async () => {
+      mockGenerateEpisode.mockRejectedValue(new Error('LLM_NOT_CONFIGURED'));
+      const app = createApp();
+      const response = await app.request('/api/ai/episode-curiosity', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ episodeId: 1, locale: 'pt' }),
+      });
+      expect(response.status).toBe(503);
    });
 });

@@ -76,9 +76,7 @@ function LocationCardInner({ location, interaction = 'normal', onBeforeNavigate 
                <span className="opacity-60">{t('locations.card.dimension')}</span>{' '}
                {location.dimension}
             </p>
-            <p>
-               {t('locations.card.residentCount', { count: location.residents.length })}
-            </p>
+            <p>{t('locations.card.residentCount', { count: location.residents.length })}</p>
          </div>
       </m.div>
    );

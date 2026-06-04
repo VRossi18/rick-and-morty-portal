@@ -142,7 +142,17 @@
       "fieldAirDate": "Air date",
       "fieldCreated": "Created",
       "charactersHeading": "Characters in this episode",
-      "charactersEmpty": "No characters listed for this episode."
+      "charactersEmpty": "No characters listed for this episode.",
+      "curiosity": {
+         "title": "Curiosity",
+         "loading": "Generating curiosity...",
+         "error": "Could not load the curiosity right now.",
+         "retry": "Try again",
+         "askPlaceholder": "Ask a question about this episode...",
+         "askButton": "Ask",
+         "emptyQuestion": "Enter a question before sending.",
+         "notConfigured": "AI curiosities are not configured. Set VITE_AI_API_URL (or VITE_AI_EPISODE_API_URL) in the environment."
+      }
    },
    "filters": {
       "searchLabel": "Search character by name",

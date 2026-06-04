@@ -142,7 +142,17 @@
       "fieldAirDate": "Data de exibição",
       "fieldCreated": "Criado em",
       "charactersHeading": "Personagens neste episódio",
-      "charactersEmpty": "Nenhum personagem listado para este episódio."
+      "charactersEmpty": "Nenhum personagem listado para este episódio.",
+      "curiosity": {
+         "title": "Curiosidade",
+         "loading": "Gerando curiosidade...",
+         "error": "Não foi possível carregar a curiosidade agora.",
+         "retry": "Tentar novamente",
+         "askPlaceholder": "Faça uma pergunta sobre este episódio...",
+         "askButton": "Perguntar",
+         "emptyQuestion": "Digite uma pergunta antes de enviar.",
+         "notConfigured": "Curiosidades com IA não estão configuradas. Defina VITE_AI_API_URL (ou VITE_AI_EPISODE_API_URL) no ambiente."
+      }
    },
    "filters": {
       "searchLabel": "Buscar personagem por nome",

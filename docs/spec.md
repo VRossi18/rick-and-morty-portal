@@ -1,8 +1,8 @@
-# AI curiosities (character detail)
+# AI curiosities (character & episode detail)
 
-BFF contract for LLM-generated fun facts on **`/character/:id`**. The browser never receives the LLM API key.
+BFF contract for LLM-generated fun facts on **`/character/:id`** and **`/episode/:id`**. The browser never receives the LLM API key.
 
-## Endpoint
+## Character endpoint
 
 `POST /api/ai/character-curiosity`
 
@@ -31,17 +31,7 @@ BFF contract for LLM-generated fun facts on **`/character/:id`**. The browser ne
 }
 ```
 
-### Errors
-
-| Status | Meaning |
-|--------|---------|
-| `400` | Invalid body |
-| `404` | Character not found in Rick and Morty API |
-| `429` | Groq rate limit |
-| `502` | Upstream/API failure |
-| `503` | `LLM_API_KEY` missing, invalid key, or quota exceeded |
-
-## Server flow
+### Server flow (character)
 
 1. Validate request body (zod).
 2. Check in-memory cache (`characterId:locale:question`, TTL 1h).
@@ -50,6 +40,53 @@ BFF contract for LLM-generated fun facts on **`/character/:id`**. The browser ne
 5. Call Groq via OpenAI-compatible API (`LLM_BASE_URL`, default `llama-3.3-70b-versatile`).
 6. Return `{ text, cached }`.
 
+---
+
+## Episode endpoint
+
+`POST /api/ai/episode-curiosity`
+
+### Request
+
+```json
+{
+   "episodeId": 1,
+   "locale": "en",
+   "question": "Who appears in this episode?"
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `episodeId` | number | yes | Positive integer |
+| `locale` | `pt` \| `en` \| `es` | yes | Response language |
+| `question` | string | no | Max 400 chars; omit for initial curiosity |
+
+### Response
+
+Same shape as character: `{ text, cached }`.
+
+### Server flow (episode)
+
+1. Validate request body (zod).
+2. Check in-memory cache (`episode:{episodeId}:locale:question`, TTL 1h).
+3. Fetch episode from `https://rickandmortyapi.com/api/episode/{id}`.
+4. Optionally resolve up to 20 character names from episode URLs for richer context.
+5. Build prompts ([`server/src/prompts/episodeCuriosity.ts`](../server/src/prompts/episodeCuriosity.ts)).
+6. Call Groq; return `{ text, cached }`.
+
+---
+
+## Errors (both endpoints)
+
+| Status | Meaning |
+|--------|---------|
+| `400` | Invalid body |
+| `404` | Character or episode not found in Rick and Morty API |
+| `429` | Groq rate limit |
+| `502` | Upstream/API failure |
+| `503` | `LLM_API_KEY` missing, invalid key, or quota exceeded |
+
 ## Environment variables
 
 ### Frontend
@@ -57,6 +94,7 @@ BFF contract for LLM-generated fun facts on **`/character/:id`**. The browser ne
 | Variable | Example |
 |----------|---------|
 | `VITE_AI_API_URL` | `/api/ai/character-curiosity` (Cloud Run) or absolute Cloud Run URL (GitHub Pages) |
+| `VITE_AI_EPISODE_API_URL` | Optional. If unset, derived from `VITE_AI_API_URL` by replacing `character-curiosity` → `episode-curiosity` |
 
 ### Server
 
@@ -72,7 +110,7 @@ BFF contract for LLM-generated fun facts on **`/character/:id`**. The browser ne
 
 - `LLM_API_KEY` — Groq API key
 - `ALLOWED_ORIGINS`
-- `AI_API_URL` — absolute URL for GitHub Pages build (`https://<cloud-run>/api/ai/character-curiosity`)
+- `AI_API_URL` — absolute URL for GitHub Pages build (`https://<cloud-run>/api/ai/character-curiosity`). Episode URL is derived at build time unless you set `VITE_AI_EPISODE_API_URL` in the workflow.
 
 ## Local development
 
@@ -96,13 +134,23 @@ This starts the API on port **8080** and Vite on **5173** (proxy `/api` → serv
 
 ## Frontend integration
 
-- [`CharacterCuriosityPanel`](../src/components/characters/CharacterCuriosityPanel.tsx) — card below character image
-- [`useCharacterCuriosity`](../src/hooks/useCharacterCuriosity.ts) — initial fetch + follow-up questions
+### Character
+
+- [`CharacterCuriosityPanel`](../src/components/characters/CharacterCuriosityPanel.tsx)
+- [`useCharacterCuriosity`](../src/hooks/useCharacterCuriosity.ts)
+
+### Episode
+
+- [`EpisodeCuriosityPanel`](../src/components/episodes/EpisodeCuriosityPanel.tsx)
+- [`useEpisodeCuriosity`](../src/hooks/useEpisodeCuriosity.ts)
+
+### Shared
+
 - [`src/config/ai.ts`](../src/config/ai.ts) — API URL resolution
 
 ## Out of scope (v1)
 
-- Episode detail curiosities
+- Curiosities on the episodes list (`/episodes`)
 - Streaming responses
 - Persistent chat history
 - Redis / distributed cache

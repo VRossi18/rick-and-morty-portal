@@ -3,6 +3,7 @@ import { m } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useParams } from 'react-router-dom';
+import { EpisodeCuriosityPanel } from '../components/episodes/EpisodeCuriosityPanel';
 import { CharacterService } from '../services/characters';
 import { EpisodeService } from '../services/episodes';
 import type { Character, Episode } from '../types/api';
@@ -161,6 +162,11 @@ export function EpisodeDetailPage() {
                            </div>
                         </dl>
                      </div>
+
+                     <EpisodeCuriosityPanel
+                        key={`${episode.id}-${i18n.language}`}
+                        episodeId={episode.id}
+                     />
 
                      <section>
                         <h2 className="mb-4 text-xl font-bold text-foreground">
