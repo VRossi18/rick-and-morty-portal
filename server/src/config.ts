@@ -20,11 +20,7 @@ export function isLocalLlmEndpoint(url?: string): boolean {
    const value = (url ?? getLlmBaseUrl()).trim();
    try {
       const { hostname } = new URL(value);
-      return (
-         hostname === 'localhost' ||
-         hostname === '127.0.0.1' ||
-         hostname === 'ollama'
-      );
+      return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === 'ollama';
    } catch {
       return false;
    }

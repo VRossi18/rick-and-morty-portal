@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 artifacts
 dist
+docs
 .env
 .env.*
 !.env.example
