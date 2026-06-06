@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 
 const GITHUB_PAGES_BASE = '/rick-and-morty-portal/';
 
-/** Cloud Run serves at `/`; GitHub Pages uses the repo subpath. */
+/** GitHub Pages uses the repo subpath; local dev uses `/`. */
 const productionBase = process.env.VITE_BASE ?? GITHUB_PAGES_BASE;
 
 export default defineConfig({

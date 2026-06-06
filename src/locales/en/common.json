@@ -151,7 +151,7 @@
          "askPlaceholder": "Ask a question about this episode...",
          "askButton": "Ask",
          "emptyQuestion": "Enter a question before sending.",
-         "notConfigured": "AI curiosities are not configured. Set VITE_AI_API_URL (or VITE_AI_EPISODE_API_URL) in the environment."
+         "notConfigured": "AI curiosities are unavailable. Local dev: Ollama (`pnpm run llm:up`) + `pnpm run dev:all` and `.env`. Production: set the GitHub `AI_API_URL` secret."
       }
    },
    "filters": {
@@ -191,7 +191,7 @@
          "askPlaceholder": "Ask a question about this character...",
          "askButton": "Ask",
          "emptyQuestion": "Type a question before sending.",
-         "notConfigured": "AI curiosities are not configured. Set VITE_AI_API_URL in the environment."
+         "notConfigured": "AI curiosities are unavailable. Local dev: Ollama (`pnpm run llm:up`) + `pnpm run dev:all` and `.env`. Production: set the GitHub `AI_API_URL` secret."
       }
    },
    "card": {

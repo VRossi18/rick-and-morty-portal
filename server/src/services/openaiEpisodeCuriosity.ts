@@ -1,5 +1,11 @@
 import OpenAI from 'openai';
-import { CACHE_TTL_MS, LLM_BASE_URL, LLM_MODEL, getLlmApiKey } from '../config.js';
+import {
+   CACHE_TTL_MS,
+   getLlmBaseUrl,
+   getLlmModel,
+   isLlmConfigured,
+   resolveLlmApiKey,
+} from '../config.js';
 import { MemoryCache } from '../cache/memoryCache.js';
 import {
    buildCacheKey,
@@ -59,8 +65,8 @@ export async function generateEpisodeCuriosity(options: {
    locale: CuriosityLocale;
    question?: string;
 }): Promise<CuriosityResult> {
-   const apiKey = getLlmApiKey();
-   if (!apiKey) {
+   const apiKey = resolveLlmApiKey();
+   if (!isLlmConfigured()) {
       throw new Error('LLM_NOT_CONFIGURED');
    }
 
@@ -72,12 +78,12 @@ export async function generateEpisodeCuriosity(options: {
 
    const episode = await fetchEpisodeById(options.episodeId);
    const characterNames = await loadEpisodeCharacterNames(episode);
-   const client = new OpenAI({ apiKey, baseURL: LLM_BASE_URL });
+   const client = new OpenAI({ apiKey: apiKey!, baseURL: getLlmBaseUrl() });
 
    let completion: OpenAI.Chat.Completions.ChatCompletion;
    try {
       completion = await client.chat.completions.create({
-         model: LLM_MODEL,
+         model: getLlmModel(),
          temperature: 0.7,
          max_tokens: 220,
          messages: [

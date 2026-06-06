@@ -1,9 +1,10 @@
 node_modules
-server/node_modules
 dist
-server/dist
 .git
 .github
 *.md
 .env
 .env.*
+!.env.example
+artifacts
+coverage

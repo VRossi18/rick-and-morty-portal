@@ -151,7 +151,7 @@
          "askPlaceholder": "Faça uma pergunta sobre este episódio...",
          "askButton": "Perguntar",
          "emptyQuestion": "Digite uma pergunta antes de enviar.",
-         "notConfigured": "Curiosidades com IA não estão configuradas. Defina VITE_AI_API_URL (ou VITE_AI_EPISODE_API_URL) no ambiente."
+         "notConfigured": "Curiosidades com IA indisponíveis. Em dev: Ollama (`pnpm run llm:up`) + `pnpm run dev:all` e `.env`. Em produção: configure o secret `AI_API_URL` no GitHub."
       }
    },
    "filters": {
@@ -191,7 +191,7 @@
          "askPlaceholder": "Faça uma pergunta sobre este personagem...",
          "askButton": "Perguntar",
          "emptyQuestion": "Digite uma pergunta antes de enviar.",
-         "notConfigured": "Curiosidades com IA não estão configuradas. Defina VITE_AI_API_URL no ambiente."
+         "notConfigured": "Curiosidades com IA indisponíveis. Em dev: Ollama (`pnpm run llm:up`) + `pnpm run dev:all` e `.env`. Em produção: configure o secret `AI_API_URL` no GitHub."
       }
    },
    "card": {

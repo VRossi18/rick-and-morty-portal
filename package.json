@@ -21,7 +21,10 @@
     "rpg:write-export-sample": "tsx scripts/write-rpg-character-export-sample.ts",
     "server:build": "pnpm --dir server build",
     "server:test": "pnpm --dir server test",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "llm:up": "node ./scripts/llm-up.mjs",
+    "llm:down": "node ./scripts/llm-down.mjs",
+    "llm:pull": "node ./scripts/llm-pull.mjs"
   },
   "pnpm": {
     "overrides": {
