@@ -135,7 +135,7 @@ export function EpisodesPage() {
                   </div>
                ) : (
                   <div
-                     className={`character-grid grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3 ${loading ? 'pointer-events-none opacity-45' : ''}`}
+                     className={`episode-grid grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3 ${loading ? 'pointer-events-none opacity-45' : ''}`}
                   >
                      {episodes.map((ep) => (
                         <EpisodeCard

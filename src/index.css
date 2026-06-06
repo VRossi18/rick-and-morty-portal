@@ -180,12 +180,22 @@
       contain-intrinsic-size: auto 320px;
    }
    .episode-card-item {
-      content-visibility: auto;
       contain-intrinsic-size: auto 200px;
    }
+   .episode-card-item.glow-card::before,
+   .episode-detail-link-item .glow-card::before {
+      display: none;
+   }
+   .episode-card-item.glow-card:hover,
+   .episode-detail-link-item .glow-card:hover {
+      transform: none;
+   }
    .episode-detail-link-item {
-      content-visibility: auto;
       contain-intrinsic-size: auto 5.75rem;
+   }
+   .episode-detail-link-item:hover,
+   .episode-detail-link-item:focus-within {
+      content-visibility: visible;
    }
    .glow-card {
       position: relative;
@@ -262,4 +272,14 @@
 .character-grid > * {
    content-visibility: auto;
    contain-intrinsic-size: auto 320px;
+}
+
+.episode-grid > * {
+   content-visibility: auto;
+   contain-intrinsic-size: auto 220px;
+}
+
+.episode-grid > *:hover,
+.episode-grid > *:focus-within {
+   content-visibility: visible;
 }

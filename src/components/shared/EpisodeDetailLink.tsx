@@ -11,12 +11,12 @@ function EpisodeDetailLinkInner({ episode }: EpisodeDetailLinkProps) {
       <li className="episode-detail-link-item h-full">
          <Link
             to={`/episode/${episode.id}`}
-            className="glow-card flex h-full min-h-[5.75rem] flex-col gap-1 p-4 outline-none ring-primary focus-visible:ring-2"
+            className="glow-card episode-detail-link-card flex h-full min-h-[5.75rem] flex-col gap-1 p-4 outline-none ring-primary focus-visible:ring-2"
          >
-            <span className="shrink-0 font-mono text-xs font-bold text-primary">
+            <span className="relative z-[1] shrink-0 font-mono text-xs font-bold text-primary">
                {episode.episode}
             </span>
-            <span className="line-clamp-2 min-h-[2.5rem] flex-1 font-semibold leading-snug text-foreground">
+            <span className="relative z-[1] line-clamp-2 min-h-[2.5rem] flex-1 font-semibold leading-snug text-foreground">
                {episode.name}
             </span>
          </Link>

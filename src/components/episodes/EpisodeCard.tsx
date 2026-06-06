@@ -17,14 +17,6 @@ function EpisodeCardInner({ episode, interaction = 'normal', onBeforeNavigate }:
    const navigate = useNavigate();
    const { t } = useTranslation('common');
 
-   const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
-      const el = ref.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      el.style.setProperty('--mx', `${e.clientX - r.left}px`);
-      el.style.setProperty('--my', `${e.clientY - r.top}px`);
-   };
-
    const openDetail = () => {
       const el = ref.current;
       if (!el) return;
@@ -58,12 +50,11 @@ function EpisodeCardInner({ episode, interaction = 'normal', onBeforeNavigate }:
          aria-label={t('episodes.card.ariaViewDetails', { name: episode.name })}
          animate={interactionMotion}
          transition={{ duration: 0.22, ease: 'easeOut' }}
-         onMouseMove={handleMove}
          onClick={openDetail}
          onKeyDown={handleKeyDown}
          className="episode-card-item glow-card group h-full cursor-pointer outline-none ring-primary focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)]"
       >
-         <div className="border-b border-primary/20 bg-gradient-to-br from-primary/15 via-transparent to-[var(--portal-cyan)]/10 px-4 py-5">
+         <div className="relative z-[1] border-b border-primary/20 bg-gradient-to-br from-primary/15 via-transparent to-[var(--portal-cyan)]/10 px-4 py-5">
             <span className="inline-block rounded-md border border-primary/50 bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold tracking-wider text-primary">
                {episode.episode}
             </span>

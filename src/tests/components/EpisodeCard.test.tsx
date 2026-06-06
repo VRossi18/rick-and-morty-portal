@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -41,14 +41,5 @@ describe('EpisodeCard', () => {
       });
       expect(link).toHaveClass('cursor-pointer');
       expect(link).toHaveClass('glow-card');
-   });
-
-   it('sets pointer CSS variables on mouse move', () => {
-      renderWithRouter(<EpisodeCard episode={episode} />);
-      const card = screen.getByRole('link', {
-         name: i18n.t('episodes.card.ariaViewDetails', { name: 'Pilot' }),
-      });
-      fireEvent.mouseMove(card, { clientX: 10, clientY: 20 });
-      expect(card).toHaveStyle({ '--mx': '10px', '--my': '20px' });
    });
 });
