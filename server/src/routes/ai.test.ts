@@ -4,6 +4,7 @@ import { aiRoutes } from './ai.js';
 
 const mockGenerateCharacter = vi.fn();
 const mockGenerateEpisode = vi.fn();
+const mockGenerateRpgGm = vi.fn();
 
 vi.mock('../services/openaiCharacterCuriosity.js', () => ({
    generateCharacterCuriosity: (...args: unknown[]) => mockGenerateCharacter(...args),
@@ -11,6 +12,10 @@ vi.mock('../services/openaiCharacterCuriosity.js', () => ({
 
 vi.mock('../services/openaiEpisodeCuriosity.js', () => ({
    generateEpisodeCuriosity: (...args: unknown[]) => mockGenerateEpisode(...args),
+}));
+
+vi.mock('../services/openaiRpgGm.js', () => ({
+   generateRpgGmReply: (...args: unknown[]) => mockGenerateRpgGm(...args),
 }));
 
 function createApp() {
@@ -114,6 +119,60 @@ describe('aiRoutes episode-curiosity', () => {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ episodeId: 1, locale: 'pt' }),
+      });
+      expect(response.status).toBe(503);
+   });
+});
+
+const sampleCharacterSheet = {
+   meta: { schemaVersion: 3 },
+   character: { name: 'Morty' },
+};
+
+describe('aiRoutes rpg-chat', () => {
+   beforeEach(() => {
+      mockGenerateRpgGm.mockReset();
+   });
+
+   it('returns 400 for invalid body', async () => {
+      const app = createApp();
+      const response = await app.request('/api/ai/rpg-chat', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ locale: 'pt', characterSheet: {}, messages: [] }),
+      });
+      expect(response.status).toBe(400);
+   });
+
+   it('returns GM text on opening success', async () => {
+      mockGenerateRpgGm.mockResolvedValue({ text: 'Welcome to the Citadel.' });
+      const app = createApp();
+      const response = await app.request('/api/ai/rpg-chat', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+            locale: 'en',
+            characterSheet: sampleCharacterSheet,
+            messages: [],
+            opening: true,
+         }),
+      });
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ text: 'Welcome to the Citadel.' });
+   });
+
+   it('returns 503 when LLM is not configured', async () => {
+      mockGenerateRpgGm.mockRejectedValue(new Error('LLM_NOT_CONFIGURED'));
+      const app = createApp();
+      const response = await app.request('/api/ai/rpg-chat', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+            locale: 'pt',
+            characterSheet: sampleCharacterSheet,
+            messages: [],
+            opening: true,
+         }),
       });
       expect(response.status).toBe(503);
    });

@@ -26,6 +26,7 @@ const RpgCharacterCreationPage = lazyPage(
    () => import('./pages/RpgCharacterCreationPage'),
    'RpgCharacterCreationPage',
 );
+const RpgGamePage = lazyPage(() => import('./pages/RpgGamePage'), 'RpgGamePage');
 
 export default function App() {
    const location = useLocation();
@@ -72,6 +73,14 @@ export default function App() {
                   element={
                      <Suspense fallback={<RouteFallback />}>
                         <RpgCharacterCreationPage />
+                     </Suspense>
+                  }
+               />
+               <Route
+                  path="rpg/play"
+                  element={
+                     <Suspense fallback={<RouteFallback />}>
+                        <RpgGamePage />
                      </Suspense>
                   }
                />

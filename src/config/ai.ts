@@ -49,6 +49,13 @@ function deriveEpisodeUrlFromCharacterUrl(characterUrl: string): string | null {
    return characterUrl.replace('character-curiosity', 'episode-curiosity');
 }
 
+function deriveRpgChatUrlFromCharacterUrl(characterUrl: string): string | null {
+   if (!characterUrl.includes('character-curiosity')) {
+      return null;
+   }
+   return characterUrl.replace('character-curiosity', 'rpg-chat');
+}
+
 export function resolveEpisodeCuriosityUrl(): string | null {
    const explicit = resolveConfiguredUrl(episodeAiApiUrlRaw);
    if (explicit) {
@@ -64,6 +71,16 @@ export function resolveEpisodeCuriosityUrl(): string | null {
 }
 
 export const isEpisodeAiCuriosityConfigured = Boolean(resolveEpisodeCuriosityUrl());
+
+export function resolveRpgChatApiUrl(): string | null {
+   const derived = deriveRpgChatUrlFromCharacterUrl(aiApiUrlRaw);
+   if (derived) {
+      return resolveConfiguredUrl(derived);
+   }
+   return resolveConfiguredUrl('/api/ai/rpg-chat');
+}
+
+export const isRpgChatConfigured = Boolean(resolveRpgChatApiUrl());
 
 export type CuriosityLocale = 'pt' | 'en' | 'es';
 

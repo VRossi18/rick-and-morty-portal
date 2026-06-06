@@ -174,6 +174,45 @@ See [`docs/llm-local.md`](llm-local.md). UI-only without AI: `pnpm dev`.
 
 - [`src/config/ai.ts`](../src/config/ai.ts) — API URL resolution
 
+---
+
+## RPG game chat
+
+`POST /api/ai/rpg-chat`
+
+Powers the GM chat at **`/rpg/play`**. The character sheet JSON (export schema v3) is sent from the browser after **Start game** on `/rpg` (stored in `sessionStorage`).
+
+### Request
+
+```json
+{
+   "locale": "pt",
+   "characterSheet": { "meta": { "schemaVersion": 3 }, "character": { "name": "Morty" } },
+   "messages": [],
+   "opening": true
+}
+```
+
+| Field | Notes |
+|-------|-------|
+| `opening: true` | First scene; `messages` must be empty |
+| `messages` | Chat history (`user` / `assistant`), max 40 entries |
+| `characterSheet` | Full export document from the RPG creator |
+
+### Response
+
+```json
+{ "text": "..." }
+```
+
+### Frontend flow
+
+1. Create character at `/rpg` → **Start game** saves sheet → navigate `/rpg/play`
+2. [`useRpgChat`](../src/hooks/useRpgChat.ts) requests opening, then player turns
+3. API URL: derived from `VITE_AI_API_URL` (`character-curiosity` → `rpg-chat`) or `/api/ai/rpg-chat` locally
+
+Local dev: `pnpm run dev:all` + Ollama (see [`llm-local.md`](llm-local.md)). Production: same Fly secrets as other AI endpoints.
+
 ## Out of scope (v1)
 
 - Curiosities on the episodes list (`/episodes`)

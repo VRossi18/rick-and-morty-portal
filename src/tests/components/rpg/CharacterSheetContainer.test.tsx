@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import i18n from '../../../i18n';
 import { CharacterSheetContainer } from '../../../components/rpg/CharacterSheetContainer';
@@ -23,7 +24,11 @@ function getSelectedRacePreviewFallback(): HTMLElement | null {
 
 describe('CharacterSheetContainer', () => {
    it('recovers preview image after previous portrait error', () => {
-      render(<CharacterSheetContainer />);
+      render(
+         <MemoryRouter>
+            <CharacterSheetContainer />
+         </MemoryRouter>,
+      );
 
       const rickPresetButton = screen.getByText(/Rick.*OP/i).closest('button');
       expect(rickPresetButton).not.toBeNull();

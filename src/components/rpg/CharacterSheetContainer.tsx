@@ -1,6 +1,8 @@
 import clsx from 'clsx';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { saveRpgSession } from '../../utils/rpgSessionStorage';
 import { buildCharacterSheetExport } from './buildCharacterSheetExport';
 import type { CharacterSheetExportTranslate } from './buildCharacterSheetExport';
 import {
@@ -24,6 +26,7 @@ import type { AbilityId, AbilityScores, RaceId } from './types';
 interface CharacterCreationSnapshot {
    characterName: string;
    selectedRaceId: RaceId;
+   portraitUrl: string;
    scores: AbilityScores;
    sheetRacialBonus: Record<AbilityId, number>;
    sheetDrawback: Record<AbilityId, number>;
@@ -36,6 +39,7 @@ interface CharacterCreationSnapshot {
 
 export function CharacterSheetContainer() {
    const { t, i18n } = useTranslation('common');
+   const navigate = useNavigate();
    const exportDialogRef = useRef<HTMLDialogElement>(null);
    const createConfirmDialogRef = useRef<HTMLDialogElement>(null);
    const createdSummaryDialogRef = useRef<HTMLDialogElement>(null);
@@ -186,7 +190,10 @@ export function CharacterSheetContainer() {
             locale: i18n.language,
             characterName: trimmed,
             selectedRaceId: snap.selectedRaceId,
-            selectedRace: getRaceById(snap.selectedRaceId),
+            selectedRace: {
+               ...getRaceById(snap.selectedRaceId),
+               portraitUrl: snap.portraitUrl,
+            },
             scores: snap.scores,
             sheetRacialBonus: snap.sheetRacialBonus,
             sheetDrawback: snap.sheetDrawback,
@@ -224,6 +231,7 @@ export function CharacterSheetContainer() {
       setCreationSnapshot({
          characterName,
          selectedRaceId,
+         portraitUrl: selectedPreset?.portraitUrl ?? selectedRace.portraitUrl,
          scores: { ...scores },
          sheetRacialBonus: { ...sheetRacialBonus },
          sheetDrawback: { ...sheetDrawback },
@@ -242,6 +250,8 @@ export function CharacterSheetContainer() {
       humanBonusChoices,
       remaining,
       scores,
+      selectedPreset,
+      selectedRace,
       selectedRaceId,
       sheetDrawback,
       sheetRacialBonus,
@@ -260,6 +270,34 @@ export function CharacterSheetContainer() {
       }
       downloadExportForSnapshot(creationSnapshot);
    }, [creationSnapshot, downloadExportForSnapshot]);
+
+   const handleStartGame = useCallback(() => {
+      if (!creationSnapshot) {
+         return;
+      }
+      const trimmed = creationSnapshot.characterName.trim();
+      const payload = buildCharacterSheetExport(t as unknown as CharacterSheetExportTranslate, {
+         exportedAt: new Date().toISOString(),
+         locale: i18n.language,
+         characterName: trimmed,
+         selectedRaceId: creationSnapshot.selectedRaceId,
+         selectedRace: {
+            ...getRaceById(creationSnapshot.selectedRaceId),
+            portraitUrl: creationSnapshot.portraitUrl,
+         },
+         scores: creationSnapshot.scores,
+         sheetRacialBonus: creationSnapshot.sheetRacialBonus,
+         sheetDrawback: creationSnapshot.sheetDrawback,
+         totals: creationSnapshot.totals,
+         highTotalFlags: creationSnapshot.highTotalFlags,
+         spent: creationSnapshot.spent,
+         remaining: creationSnapshot.remaining,
+         humanBonusChoices: creationSnapshot.humanBonusChoices,
+      });
+      saveRpgSession(payload);
+      closeCreatedSummaryDialog();
+      navigate('/rpg/play');
+   }, [closeCreatedSummaryDialog, creationSnapshot, i18n.language, navigate, t]);
 
    return (
       <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 md:py-12">
@@ -868,7 +906,9 @@ export function CharacterSheetContainer() {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                      <div className="mx-auto h-36 w-36 shrink-0 overflow-hidden rounded-2xl border border-emerald-500/40 bg-card shadow-md sm:mx-0">
                         <RacePortrait
+                           key={creationSnapshot.portraitUrl}
                            race={getRaceById(creationSnapshot.selectedRaceId)}
+                           portraitUrl={creationSnapshot.portraitUrl}
                            imageAlt={t(
                               `rpg.races.${creationSnapshot.selectedRaceId}.imageAlt` as 'rpg.title',
                            )}
@@ -1068,9 +1108,7 @@ export function CharacterSheetContainer() {
                         <div className="flex flex-col items-stretch gap-1 sm:items-end">
                            <button
                               type="button"
-                              onClick={() => {
-                                 /* reserved for future session start */
-                              }}
+                              onClick={handleStartGame}
                               className="rounded-lg border border-violet-500/50 bg-violet-500/15 px-4 py-2.5 text-sm font-semibold text-violet-900 transition hover:bg-violet-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 dark:text-violet-100"
                            >
                               {t('rpg.createdStartGame')}
