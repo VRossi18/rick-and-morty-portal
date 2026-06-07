@@ -82,6 +82,9 @@ export function resolveRpgChatApiUrl(): string | null {
 
 export const isRpgChatConfigured = Boolean(resolveRpgChatApiUrl());
 
+/** Aligned with `CACHE_TTL_MS` in server/src/config.ts */
+export const CURIOSITY_CACHE_TTL_MS = 60 * 60 * 1000;
+
 export type CuriosityLocale = 'pt' | 'en' | 'es';
 
 export function normalizeCuriosityLocale(language: string): CuriosityLocale {

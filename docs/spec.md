@@ -173,6 +173,17 @@ See [`docs/llm-local.md`](llm-local.md). UI-only without AI: `pnpm dev`.
 ### Shared
 
 - [`src/config/ai.ts`](../src/config/ai.ts) — API URL resolution
+- [`src/services/aiCuriosity.ts`](../src/services/aiCuriosity.ts) — fetch helpers for curiosity endpoints
+
+### Client-side cache (React Query)
+
+Curiosity hooks use **React Query** with `staleTime` and `gcTime` of **1 hour** (`CURIOSITY_CACHE_TTL_MS` in `src/config/ai.ts`), aligned with the BFF `MemoryCache` TTL. This avoids refetching and showing a loading spinner when revisiting the same character or episode detail within an hour.
+
+- **Initial curiosity:** `useQuery` keyed by entity id + locale
+- **Follow-up questions:** `useMutation` (session-only display; remount shows cached initial curiosity)
+- **Retry:** refetches initial query or re-runs the last follow-up mutation
+
+The BFF still caches LLM responses independently; the two layers reduce both server load and perceived latency.
 
 ---
 

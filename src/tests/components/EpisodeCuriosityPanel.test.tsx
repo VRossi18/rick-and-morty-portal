@@ -2,6 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import { EpisodeCuriosityPanel } from '../../components/episodes/EpisodeCuriosityPanel';
+import { TestQueryProvider } from '../TestQueryProvider';
+
+function renderPanel(episodeId: number) {
+   return render(
+      <TestQueryProvider>
+         <EpisodeCuriosityPanel episodeId={episodeId} />
+      </TestQueryProvider>,
+   );
+}
 
 const aiMocks = vi.hoisted(() => ({
    isConfigured: true,
@@ -27,7 +36,7 @@ describe('EpisodeCuriosityPanel', () => {
 
    it('shows not configured message when AI URL is missing', () => {
       aiMocks.isConfigured = false;
-      render(<EpisodeCuriosityPanel episodeId={1} />);
+      renderPanel(1);
       expect(screen.getByText(i18n.t('episodeDetail.curiosity.notConfigured'))).toBeInTheDocument();
    });
 
@@ -37,7 +46,7 @@ describe('EpisodeCuriosityPanel', () => {
          json: async () => ({ text: 'The pilot introduces Rick and Morty.' }),
       } as Response);
 
-      render(<EpisodeCuriosityPanel episodeId={1} />);
+      renderPanel(1);
 
       expect(
          await screen.findByText('The pilot introduces Rick and Morty.'),
@@ -55,7 +64,7 @@ describe('EpisodeCuriosityPanel', () => {
             json: async () => ({ text: 'Rick Sanchez and Morty Smith appear.' }),
          } as Response);
 
-      render(<EpisodeCuriosityPanel episodeId={1} />);
+      renderPanel(1);
       expect(await screen.findByText('Initial fact')).toBeInTheDocument();
 
       fireEvent.change(

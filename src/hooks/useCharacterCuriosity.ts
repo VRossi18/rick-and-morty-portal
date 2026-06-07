@@ -1,110 +1,50 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef } from 'react';
 import {
+   CURIOSITY_CACHE_TTL_MS,
    normalizeCuriosityLocale,
    resolveAiApiUrl,
-   type CuriosityLocale,
 } from '../config/ai';
+import { queryKeys } from './queries/queryKeys';
+import {
+   requestCharacterCuriosity,
+   toCuriosityErrorMessage,
+} from '../services/aiCuriosity';
 
-interface FetchCuriosityOptions {
-   characterId: number;
-   locale: CuriosityLocale;
-   question?: string;
-}
-
-async function requestCharacterCuriosity({
-   characterId,
-   locale,
-   question,
-}: FetchCuriosityOptions): Promise<string> {
-   const apiUrl = resolveAiApiUrl();
-   if (!apiUrl) {
-      throw new Error('AI_NOT_CONFIGURED');
-   }
-
-   const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-         characterId,
-         locale,
-         ...(question ? { question } : {}),
-      }),
-   });
-
-   if (!response.ok) {
-      throw new Error('FETCH_FAILED');
-   }
-
-   const data = (await response.json()) as { text?: string };
-   if (!data.text) {
-      throw new Error('FETCH_FAILED');
-   }
-
-   return data.text;
-}
+const curiosityQueryOptions = {
+   staleTime: CURIOSITY_CACHE_TTL_MS,
+   gcTime: CURIOSITY_CACHE_TTL_MS,
+   retry: 1,
+} as const;
 
 export function useCharacterCuriosity(characterId: number, language: string) {
+   const queryClient = useQueryClient();
    const locale = normalizeCuriosityLocale(language);
    const isConfigured = Boolean(resolveAiApiUrl());
-   const [text, setText] = useState<string | null>(null);
-   const [isLoading, setIsLoading] = useState(isConfigured);
-   const [errorMessage, setErrorMessage] = useState<string | null>(null);
    const lastQuestionRef = useRef<string | undefined>(undefined);
 
-   useEffect(() => {
-      if (!isConfigured) {
-         return;
-      }
+   const initialQuery = useQuery({
+      queryKey: queryKeys.curiosity.character.initial(characterId, locale),
+      queryFn: () => requestCharacterCuriosity({ characterId, locale }),
+      enabled: isConfigured,
+      ...curiosityQueryOptions,
+   });
 
-      let cancelled = false;
-      lastQuestionRef.current = undefined;
-
-      void (async () => {
-         try {
-            const result = await requestCharacterCuriosity({ characterId, locale });
-            if (!cancelled) {
-               setText(result);
-               setErrorMessage(null);
-            }
-         } catch (err) {
-            if (!cancelled) {
-               const code = err instanceof Error ? err.message : '';
-               setErrorMessage(code === 'AI_NOT_CONFIGURED' ? 'AI_NOT_CONFIGURED' : 'FETCH_FAILED');
-            }
-         } finally {
-            if (!cancelled) {
-               setIsLoading(false);
-            }
-         }
-      })();
-
-      return () => {
-         cancelled = true;
-      };
-   }, [characterId, isConfigured, locale]);
-
-   const runRequest = useCallback(
-      async (question?: string) => {
-         setIsLoading(true);
-         setErrorMessage(null);
-
-         try {
-            const result = await requestCharacterCuriosity({
-               characterId,
-               locale,
-               question,
-            });
-            setText(result);
-         } catch (err) {
-            const code = err instanceof Error ? err.message : '';
-            setErrorMessage(code === 'AI_NOT_CONFIGURED' ? 'AI_NOT_CONFIGURED' : 'FETCH_FAILED');
-            throw err;
-         } finally {
-            setIsLoading(false);
-         }
+   const askMutation = useMutation({
+      mutationFn: (question: string) =>
+         requestCharacterCuriosity({ characterId, locale, question }),
+      onSuccess: (text, question) => {
+         queryClient.setQueryData(
+            queryKeys.curiosity.character.question(characterId, locale, question),
+            text,
+         );
       },
-      [characterId, locale],
-   );
+   });
+
+   useEffect(() => {
+      lastQuestionRef.current = undefined;
+      askMutation.reset();
+   }, [characterId, locale]);
 
    const askQuestion = useCallback(
       async (question: string) => {
@@ -114,14 +54,29 @@ export function useCharacterCuriosity(characterId: number, language: string) {
          }
 
          lastQuestionRef.current = trimmed;
-         await runRequest(trimmed);
+         await askMutation.mutateAsync(trimmed);
       },
-      [runRequest],
+      [askMutation],
    );
 
    const retry = useCallback(async () => {
-      await runRequest(lastQuestionRef.current);
-   }, [runRequest]);
+      if (lastQuestionRef.current) {
+         await askMutation.mutateAsync(lastQuestionRef.current);
+      } else {
+         await initialQuery.refetch();
+      }
+   }, [askMutation, initialQuery]);
+
+   const text = askMutation.data ?? initialQuery.data ?? null;
+   const isLoading =
+      isConfigured &&
+      ((initialQuery.isPending && !initialQuery.data) || askMutation.isPending);
+   const errorMessage =
+      askMutation.isError
+         ? toCuriosityErrorMessage(askMutation.error)
+         : initialQuery.isError
+           ? toCuriosityErrorMessage(initialQuery.error)
+           : null;
 
    return {
       text,

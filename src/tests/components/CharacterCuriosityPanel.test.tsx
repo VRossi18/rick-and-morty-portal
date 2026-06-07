@@ -2,6 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import { CharacterCuriosityPanel } from '../../components/characters/CharacterCuriosityPanel';
+import { TestQueryProvider } from '../TestQueryProvider';
+
+function renderPanel(characterId: number) {
+   return render(
+      <TestQueryProvider>
+         <CharacterCuriosityPanel characterId={characterId} />
+      </TestQueryProvider>,
+   );
+}
 
 const aiMocks = vi.hoisted(() => ({
    isConfigured: true,
@@ -27,7 +36,7 @@ describe('CharacterCuriosityPanel', () => {
 
    it('shows not configured message when AI URL is missing', () => {
       aiMocks.isConfigured = false;
-      render(<CharacterCuriosityPanel characterId={2} />);
+      renderPanel(2);
       expect(screen.getByText(i18n.t('characterDetail.curiosity.notConfigured'))).toBeInTheDocument();
    });
 
@@ -37,7 +46,7 @@ describe('CharacterCuriosityPanel', () => {
          json: async () => ({ text: 'Morty is Rick\'s anxious grandson.' }),
       } as Response);
 
-      render(<CharacterCuriosityPanel characterId={2} />);
+      renderPanel(2);
 
       expect(await screen.findByText("Morty is Rick's anxious grandson.")).toBeInTheDocument();
    });
@@ -53,7 +62,7 @@ describe('CharacterCuriosityPanel', () => {
             json: async () => ({ text: 'Because Rick drags him into adventures.' }),
          } as Response);
 
-      render(<CharacterCuriosityPanel characterId={2} />);
+      renderPanel(2);
       expect(await screen.findByText('Initial fact')).toBeInTheDocument();
 
       fireEvent.change(

@@ -3,6 +3,20 @@ import type { EpisodeListFilters } from '../../services/episodes';
 import type { LocationListFilters } from '../../services/locations';
 
 export const queryKeys = {
+   curiosity: {
+      character: {
+         initial: (id: number, locale: string) =>
+            ['curiosity', 'character', id, locale, 'initial'] as const,
+         question: (id: number, locale: string, question: string) =>
+            ['curiosity', 'character', id, locale, question] as const,
+      },
+      episode: {
+         initial: (id: number, locale: string) =>
+            ['curiosity', 'episode', id, locale, 'initial'] as const,
+         question: (id: number, locale: string, question: string) =>
+            ['curiosity', 'episode', id, locale, question] as const,
+      },
+   },
    characters: {
       list: (page: number, filters: CharacterListFilters) =>
          ['characters', 'list', page, filters] as const,
