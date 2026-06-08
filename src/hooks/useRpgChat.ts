@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { CharacterSheetExportDocument } from '../components/rpg/buildCharacterSheetExport';
 import {
@@ -58,101 +59,121 @@ function toApiMessages(messages: RpgChatUiMessage[]): RpgChatApiMessage[] {
    return messages.map((m) => ({ role: m.role, content: m.text }));
 }
 
+function toRpgErrorMessage(err: unknown): string {
+   return err instanceof Error ? err.message : 'FETCH_FAILED';
+}
+
 export function useRpgChat(characterSheet: CharacterSheetExportDocument, language: string) {
    const locale = normalizeCuriosityLocale(language);
    const isConfigured = Boolean(resolveRpgChatApiUrl());
    const idPrefix = useId();
    const messageCounter = useRef(0);
-   const [messages, setMessages] = useState<RpgChatUiMessage[]>([]);
-   const [isLoading, setIsLoading] = useState(isConfigured);
-   const [errorMessage, setErrorMessage] = useState<string | null>(null);
    const openingRequested = useRef(false);
+   const [messages, setMessages] = useState<RpgChatUiMessage[]>([]);
+   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+   const messagesRef = useRef(messages);
+   const characterSheetRef = useRef(characterSheet);
+
+   messagesRef.current = messages;
+   characterSheetRef.current = characterSheet;
 
    const nextId = useCallback(() => {
       messageCounter.current += 1;
       return `${idPrefix}-${messageCounter.current}`;
    }, [idPrefix]);
 
-   const fetchOpening = useCallback(async () => {
-      if (!isConfigured) {
-         setErrorMessage('AI_NOT_CONFIGURED');
-         setIsLoading(false);
-         return;
-      }
-
-      setIsLoading(true);
-      setErrorMessage(null);
-
-      try {
-         const text = await requestRpgChat({
+   const openingMutation = useMutation({
+      mutationFn: () =>
+         requestRpgChat({
             locale,
-            characterSheet,
+            characterSheet: characterSheetRef.current,
             messages: [],
             opening: true,
-         });
+         }),
+      onSuccess: (text) => {
          setMessages([{ id: nextId(), role: 'assistant', text }]);
-      } catch (err) {
-         const code = err instanceof Error ? err.message : 'FETCH_FAILED';
-         setErrorMessage(code);
-      } finally {
-         setIsLoading(false);
-      }
-   }, [characterSheet, isConfigured, locale, nextId]);
+         setErrorMessage(null);
+      },
+      onError: (err) => {
+         setErrorMessage(toRpgErrorMessage(err));
+      },
+   });
 
    useEffect(() => {
+      if (!isConfigured) {
+         setErrorMessage('AI_NOT_CONFIGURED');
+         return;
+      }
       if (openingRequested.current) {
          return;
       }
       openingRequested.current = true;
-      void fetchOpening();
-   }, [fetchOpening]);
+      openingMutation.mutate();
+   }, [isConfigured, openingMutation]);
+
+   const sendMutation = useMutation({
+      mutationFn: async ({
+         userMessage,
+         history,
+      }: {
+         userMessage: RpgChatUiMessage;
+         history: RpgChatApiMessage[];
+      }) => {
+         const reply = await requestRpgChat({
+            locale,
+            characterSheet: characterSheetRef.current,
+            messages: history,
+         });
+         return { userMessage, reply };
+      },
+      onMutate: ({ userMessage }) => {
+         setMessages((current) => [...current, userMessage]);
+         setErrorMessage(null);
+      },
+      onSuccess: ({ reply }) => {
+         setMessages((current) => [
+            ...current,
+            { id: nextId(), role: 'assistant', text: reply },
+         ]);
+      },
+      onError: (err, { userMessage }) => {
+         setErrorMessage(toRpgErrorMessage(err));
+         setMessages((current) => current.filter((message) => message.id !== userMessage.id));
+      },
+   });
 
    const sendMessage = useCallback(
       async (rawText: string) => {
          const text = rawText.trim();
-         if (!text || isLoading) {
+         if (!text) {
             return;
          }
          if (!isConfigured) {
             setErrorMessage('AI_NOT_CONFIGURED');
             return;
          }
+         if (openingMutation.isPending || sendMutation.isPending) {
+            return;
+         }
 
          const userMessage: RpgChatUiMessage = { id: nextId(), role: 'user', text };
-         const history = [...messages, userMessage];
-         setMessages(history);
-         setIsLoading(true);
-         setErrorMessage(null);
-
-         try {
-            const apiMessages = toApiMessages(history).slice(-MAX_HISTORY);
-            const reply = await requestRpgChat({
-               locale,
-               characterSheet,
-               messages: apiMessages,
-            });
-            setMessages((current) => [
-               ...current,
-               { id: nextId(), role: 'assistant', text: reply },
-            ]);
-         } catch (err) {
-            const code = err instanceof Error ? err.message : 'FETCH_FAILED';
-            setErrorMessage(code);
-            setMessages((current) => current.filter((m) => m.id !== userMessage.id));
-         } finally {
-            setIsLoading(false);
-         }
+         const history = toApiMessages([...messagesRef.current, userMessage]).slice(-MAX_HISTORY);
+         await sendMutation.mutateAsync({ userMessage, history });
       },
-      [characterSheet, isConfigured, isLoading, locale, messages, nextId],
+      [isConfigured, nextId, openingMutation.isPending, sendMutation],
    );
 
    const retry = useCallback(() => {
-      if (messages.length === 0) {
-         void fetchOpening();
+      if (messagesRef.current.length === 0) {
+         setErrorMessage(null);
+         openingMutation.mutate();
          return;
       }
       setErrorMessage(null);
-   }, [fetchOpening, messages.length]);
+   }, [openingMutation]);
+
+   const isLoading =
+      isConfigured && (openingMutation.isPending || sendMutation.isPending);
 
    return {
       messages,

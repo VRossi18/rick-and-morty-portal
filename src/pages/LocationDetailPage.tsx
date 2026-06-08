@@ -1,22 +1,18 @@
-import { isAxiosError } from 'axios';
 import { m } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { EpisodeDetailLink } from '../components/shared/EpisodeDetailLink';
-import { CharacterService } from '../services/characters';
-import { LocationService } from '../services/locations';
-import type { Character, Episode, Location } from '../types/api';
-import type { LocationLocationState } from '../types/navigation';
-import { characterUrlToId } from '../utils/episodeCharacters';
-import { formatLocaleDate } from '../utils/formatLocaleDate';
 import {
-   fetchEpisodesByIds,
-   uniqueEpisodeIdsFromCharacters,
-} from '../utils/locationEpisodes';
+   useLocationDetailQuery,
+   useLocationEpisodesQuery,
+   useLocationResidentsQuery,
+} from '../hooks/queries/useLocationDetailQuery';
+import { mapDetailQueryError } from '../hooks/queries/mapDetailQueryError';
+import type { LocationLocationState } from '../types/navigation';
+import { formatLocaleDate } from '../utils/formatLocaleDate';
 
 type DetailErrorKey = 'invalidId' | 'notFound' | 'loadFailed';
-type FetchErrorKey = Exclude<DetailErrorKey, 'invalidId'>;
 
 export function LocationDetailPage() {
    const { t, i18n } = useTranslation('common');
@@ -30,89 +26,23 @@ export function LocationDetailPage() {
    }, [idParam]);
 
    const invalidId = Number.isNaN(id);
+   const canFetch = !invalidId;
 
-   const [location, setLocation] = useState<Location | null>(null);
-   const [residents, setResidents] = useState<Character[]>([]);
-   const [episodes, setEpisodes] = useState<Episode[]>([]);
-   const [loading, setLoading] = useState(() => !invalidId);
-   const [residentsLoading, setResidentsLoading] = useState(false);
-   const [episodesLoading, setEpisodesLoading] = useState(false);
-   const [fetchErrorKey, setFetchErrorKey] = useState<FetchErrorKey | null>(null);
+   const locationQuery = useLocationDetailQuery(id, canFetch);
+   const residentsQuery = useLocationResidentsQuery(id, locationQuery.data?.residents);
+   const episodesQuery = useLocationEpisodesQuery(residentsQuery.data);
 
+   const location = locationQuery.data;
+   const residents = residentsQuery.data ?? [];
+   const episodes = episodesQuery.data ?? [];
+   const loading = canFetch && locationQuery.isPending && !location;
+   const residentsLoading = residentsQuery.isFetching && residents.length === 0;
+   const episodesLoading = episodesQuery.isFetching && episodes.length === 0;
+
+   const fetchErrorKey = locationQuery.isError ? mapDetailQueryError(locationQuery.error) : null;
    const errorKey: DetailErrorKey | null = invalidId ? 'invalidId' : fetchErrorKey;
 
    const dateLocale = i18n.language.startsWith('en') ? 'en-US' : 'pt-BR';
-
-   useEffect(() => {
-      if (invalidId) {
-         return;
-      }
-
-      let isMounted = true;
-
-      const load = async () => {
-         setLoading(true);
-         setFetchErrorKey(null);
-         setResidents([]);
-         setEpisodes([]);
-
-         try {
-            const data = await LocationService.getLocationById(id);
-            if (!isMounted) return;
-            setLocation(data);
-            setLoading(false);
-
-            const residentIds = data.residents
-               .map(characterUrlToId)
-               .filter((charId): charId is number => charId !== null);
-
-            if (residentIds.length === 0) {
-               return;
-            }
-
-            setResidentsLoading(true);
-            let chars: Character[] = [];
-            try {
-               chars = await CharacterService.getMultipleCharacters(residentIds);
-               if (!isMounted) return;
-               setResidents(chars);
-            } finally {
-               if (isMounted) setResidentsLoading(false);
-            }
-
-            const episodeIds = uniqueEpisodeIdsFromCharacters(chars);
-            if (episodeIds.length === 0) {
-               return;
-            }
-
-            setEpisodesLoading(true);
-            try {
-               const related = await fetchEpisodesByIds(episodeIds);
-               if (!isMounted) return;
-               setEpisodes(related);
-            } finally {
-               if (isMounted) setEpisodesLoading(false);
-            }
-         } catch (err) {
-            if (!isMounted) return;
-            if (isAxiosError(err) && err.response?.status === 404) {
-               setFetchErrorKey('notFound');
-            } else {
-               setFetchErrorKey('loadFailed');
-            }
-            setLocation(null);
-            setResidents([]);
-            setEpisodes([]);
-            setLoading(false);
-         }
-      };
-
-      void load();
-
-      return () => {
-         isMounted = false;
-      };
-   }, [id, invalidId]);
 
    return (
       <m.div
@@ -220,6 +150,7 @@ export function LocationDetailPage() {
                                           src={character.image}
                                           alt=""
                                           className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                                          loading="lazy"
                                        />
                                        <span className="min-w-0 font-semibold text-foreground line-clamp-2">
                                           {character.name}

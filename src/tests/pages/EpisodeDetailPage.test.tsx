@@ -7,6 +7,7 @@ import { CharacterService } from '../../services/characters';
 import { EpisodeService } from '../../services/episodes';
 import type { Character, Episode } from '../../types/api';
 import { EpisodeDetailPage } from '../../pages/EpisodeDetailPage';
+import { TestQueryProvider } from '../TestQueryProvider';
 
 vi.mock('../../components/episodes/EpisodeCuriosityPanel', () => ({
    EpisodeCuriosityPanel: ({ episodeId }: { episodeId: number }) => (
@@ -58,11 +59,13 @@ const mockCharacters: Character[] = [
 
 function renderAt(path: string) {
    return render(
-      <MemoryRouter initialEntries={[path]}>
-         <Routes>
-            <Route path="/episode/:id" element={<EpisodeDetailPage />} />
-         </Routes>
-      </MemoryRouter>,
+      <TestQueryProvider>
+         <MemoryRouter initialEntries={[path]}>
+            <Routes>
+               <Route path="/episode/:id" element={<EpisodeDetailPage />} />
+            </Routes>
+         </MemoryRouter>
+      </TestQueryProvider>,
    );
 }
 
@@ -87,7 +90,7 @@ describe('EpisodeDetailPage', () => {
 
       expect(await screen.findByRole('heading', { name: 'Pilot' })).toBeInTheDocument();
       expect(screen.getByText('S01E01')).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'Rick Sanchez' })).toBeInTheDocument();
+      expect(await screen.findByRole('link', { name: 'Rick Sanchez' })).toBeInTheDocument();
       expect(screen.getByTestId('episode-curiosity-panel')).toHaveTextContent('curiosity-1');
       expect(CharacterService.getMultipleCharacters).toHaveBeenCalledWith([1, 2]);
    });

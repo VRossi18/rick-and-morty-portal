@@ -1,16 +1,18 @@
-import { isAxiosError } from 'axios';
 import { m } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { EpisodeDetailLink } from '../components/shared/EpisodeDetailLink';
 import { CharacterCuriosityPanel } from '../components/characters/CharacterCuriosityPanel';
-import { CharacterService } from '../services/characters';
-import type { Character, Episode, ResourceBase } from '../types/api';
+import {
+   useCharacterDetailQuery,
+   useCharacterEpisodesQuery,
+} from '../hooks/queries/useCharacterDetailQuery';
+import { mapDetailQueryError } from '../hooks/queries/mapDetailQueryError';
+import type { ResourceBase } from '../types/api';
 import type { CharacterLocationState } from '../types/navigation';
 import { formatLocaleDate } from '../utils/formatLocaleDate';
-import { fetchEpisodesByIds } from '../utils/locationEpisodes';
-import { episodeUrlToId, locationUrlToId } from '../utils/locationUrls';
+import { locationUrlToId } from '../utils/locationUrls';
 
 function LocationFieldLink({ place }: { place: ResourceBase }) {
    const locationId = locationUrlToId(place.url);
@@ -28,7 +30,6 @@ function LocationFieldLink({ place }: { place: ResourceBase }) {
 }
 
 type DetailErrorKey = 'invalidId' | 'notFound' | 'loadFailed';
-type FetchErrorKey = Exclude<DetailErrorKey, 'invalidId'>;
 
 export function CharacterDetailPage() {
    const { t, i18n } = useTranslation('common');
@@ -42,70 +43,20 @@ export function CharacterDetailPage() {
    }, [idParam]);
 
    const invalidId = Number.isNaN(id);
+   const canFetch = !invalidId;
 
-   const [character, setCharacter] = useState<Character | null>(null);
-   const [episodes, setEpisodes] = useState<Episode[]>([]);
-   const [loading, setLoading] = useState(() => !invalidId);
-   const [episodesLoading, setEpisodesLoading] = useState(false);
-   const [fetchErrorKey, setFetchErrorKey] = useState<FetchErrorKey | null>(null);
+   const characterQuery = useCharacterDetailQuery(id, canFetch);
+   const episodesQuery = useCharacterEpisodesQuery(characterQuery.data?.episode);
 
+   const character = characterQuery.data;
+   const episodes = episodesQuery.data ?? [];
+   const loading = canFetch && characterQuery.isPending && !character;
+   const episodesLoading = episodesQuery.isFetching && episodes.length === 0;
+
+   const fetchErrorKey = characterQuery.isError ? mapDetailQueryError(characterQuery.error) : null;
    const errorKey: DetailErrorKey | null = invalidId ? 'invalidId' : fetchErrorKey;
 
    const dateLocale = i18n.language.startsWith('en') ? 'en-US' : 'pt-BR';
-
-   useEffect(() => {
-      if (invalidId) {
-         return;
-      }
-
-      let isMounted = true;
-
-      const load = async () => {
-         setLoading(true);
-         setFetchErrorKey(null);
-         setEpisodes([]);
-         try {
-            const data = await CharacterService.getCharacterById(id);
-            if (!isMounted) return;
-            setCharacter(data);
-            setLoading(false);
-
-            const episodeIds = data.episode
-               .map(episodeUrlToId)
-               .filter((episodeId): episodeId is number => episodeId !== null);
-
-            if (episodeIds.length === 0) {
-               setEpisodes([]);
-               return;
-            }
-
-            setEpisodesLoading(true);
-            try {
-               const related = await fetchEpisodesByIds(episodeIds);
-               if (!isMounted) return;
-               setEpisodes(related);
-            } finally {
-               if (isMounted) setEpisodesLoading(false);
-            }
-         } catch (err) {
-            if (!isMounted) return;
-            if (isAxiosError(err) && err.response?.status === 404) {
-               setFetchErrorKey('notFound');
-            } else {
-               setFetchErrorKey('loadFailed');
-            }
-            setCharacter(null);
-            setEpisodes([]);
-            setLoading(false);
-         }
-      };
-
-      void load();
-
-      return () => {
-         isMounted = false;
-      };
-   }, [id, invalidId]);
 
    const statusColor =
       character?.status === 'Alive'
@@ -146,12 +97,7 @@ export function CharacterDetailPage() {
             </div>
 
             <div className="relative mx-auto max-w-5xl px-4 pb-24">
-               {loading ? (
-                  <div className="flex flex-col items-center justify-center gap-4 py-24">
-                     <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                     <p className="text-sm font-bold text-primary">{t('characterDetail.loading')}</p>
-                  </div>
-               ) : errorKey ? (
+               {errorKey ? (
                   <p className="py-16 text-center text-sm font-bold text-red-500">
                      {errorKey === 'invalidId'
                         ? t('characterDetail.errorInvalidId')
@@ -159,106 +105,123 @@ export function CharacterDetailPage() {
                           ? t('characterDetail.errorNotFound')
                           : t('characterDetail.errorLoadFailed')}
                   </p>
-               ) : character ? (
+               ) : canFetch ? (
                   <div className="flex flex-col gap-10 md:flex-row md:items-start">
                      <div className="mx-auto w-full max-w-sm shrink-0 space-y-4 md:mx-0">
-                     <div className="overflow-hidden rounded-2xl border border-primary/25 bg-card shadow-lg shadow-primary/10">
-                        <img
-                           src={character.image}
-                           alt={character.name}
-                           className="aspect-square w-full object-cover"
-                        />
+                        {character ? (
+                           <div className="overflow-hidden rounded-2xl border border-primary/25 bg-card shadow-lg shadow-primary/10">
+                              <img
+                                 src={character.image}
+                                 alt={character.name}
+                                 className="aspect-square w-full object-cover"
+                              />
+                           </div>
+                        ) : (
+                           <div
+                              aria-hidden
+                              className="aspect-square w-full animate-pulse rounded-2xl border border-primary/25 bg-card/40"
+                           />
+                        )}
+                        <CharacterCuriosityPanel characterId={id} />
                      </div>
-                     <CharacterCuriosityPanel
-                        key={`${character.id}-${i18n.language}`}
-                        characterId={character.id}
-                     />
-                  </div>
 
                      <div className="min-w-0 flex-1 space-y-6">
-                        <div>
-                           <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-                              {character.name}
-                           </h1>
-                           <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground">
-                              <span
-                                 className="status-dot"
-                                 style={{ color: statusColor, backgroundColor: statusColor }}
-                              />
-                              <span className="text-sm font-medium">
-                                 {character.status} — {character.species}
-                              </span>
-                           </div>
-                        </div>
-
-                        <dl className="grid gap-4 text-sm sm:grid-cols-2">
-                           <div className="rounded-xl border border-border/60 bg-card/40 p-4">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                 {t('characterDetail.fieldType')}
-                              </dt>
-                              <dd className="mt-1 font-medium text-foreground">
-                                 {character.type || '—'}
-                              </dd>
-                           </div>
-                           <div className="rounded-xl border border-border/60 bg-card/40 p-4">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                 {t('characterDetail.fieldGender')}
-                              </dt>
-                              <dd className="mt-1 font-medium text-foreground">
-                                 {character.gender}
-                              </dd>
-                           </div>
-                           <div className="rounded-xl border border-border/60 bg-card/40 p-4 sm:col-span-2">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                 {t('characterDetail.fieldOrigin')}
-                              </dt>
-                              <dd className="mt-1 font-medium text-foreground">
-                                 <LocationFieldLink place={character.origin} />
-                              </dd>
-                           </div>
-                           <div className="rounded-xl border border-border/60 bg-card/40 p-4 sm:col-span-2">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                 {t('characterDetail.fieldLocation')}
-                              </dt>
-                              <dd className="mt-1 font-medium text-foreground">
-                                 <LocationFieldLink place={character.location} />
-                              </dd>
-                           </div>
-                           <div className="rounded-xl border border-border/60 bg-card/40 p-4 sm:col-span-2">
-                              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                 {t('characterDetail.fieldCreated')}
-                              </dt>
-                              <dd className="mt-1 font-medium text-foreground">
-                                 {formatLocaleDate(character.created, dateLocale)}
-                              </dd>
-                           </div>
-                        </dl>
-
-                        <section>
-                           <h2 className="mb-4 text-xl font-bold text-foreground">
-                              {t('characterDetail.episodesHeading')}
-                              {episodes.length > 0 ? (
-                                 <span className="ml-2 text-sm font-semibold text-muted-foreground">
-                                    {t('characterDetail.episodeCount', { count: episodes.length })}
-                                 </span>
-                              ) : null}
-                           </h2>
-                           {episodesLoading ? (
-                              <p className="text-sm font-semibold text-primary">
-                                 {t('characterDetail.episodesLoading')}
+                        {loading ? (
+                           <div className="flex flex-col items-center justify-center gap-4 py-24">
+                              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                              <p className="text-sm font-bold text-primary">
+                                 {t('characterDetail.loading')}
                               </p>
-                           ) : episodes.length === 0 ? (
-                              <p className="text-sm text-muted-foreground">
-                                 {t('characterDetail.episodesEmpty')}
-                              </p>
-                           ) : (
-                              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                 {episodes.map((episode) => (
-                                    <EpisodeDetailLink key={episode.id} episode={episode} />
-                                 ))}
-                              </ul>
-                           )}
-                        </section>
+                           </div>
+                        ) : character ? (
+                           <>
+                              <div>
+                                 <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+                                    {character.name}
+                                 </h1>
+                                 <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground">
+                                    <span
+                                       className="status-dot"
+                                       style={{ color: statusColor, backgroundColor: statusColor }}
+                                    />
+                                    <span className="text-sm font-medium">
+                                       {character.status} — {character.species}
+                                    </span>
+                                 </div>
+                              </div>
+
+                              <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                                 <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+                                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                       {t('characterDetail.fieldType')}
+                                    </dt>
+                                    <dd className="mt-1 font-medium text-foreground">
+                                       {character.type || '—'}
+                                    </dd>
+                                 </div>
+                                 <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+                                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                       {t('characterDetail.fieldGender')}
+                                    </dt>
+                                    <dd className="mt-1 font-medium text-foreground">
+                                       {character.gender}
+                                    </dd>
+                                 </div>
+                                 <div className="rounded-xl border border-border/60 bg-card/40 p-4 sm:col-span-2">
+                                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                       {t('characterDetail.fieldOrigin')}
+                                    </dt>
+                                    <dd className="mt-1 font-medium text-foreground">
+                                       <LocationFieldLink place={character.origin} />
+                                    </dd>
+                                 </div>
+                                 <div className="rounded-xl border border-border/60 bg-card/40 p-4 sm:col-span-2">
+                                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                       {t('characterDetail.fieldLocation')}
+                                    </dt>
+                                    <dd className="mt-1 font-medium text-foreground">
+                                       <LocationFieldLink place={character.location} />
+                                    </dd>
+                                 </div>
+                                 <div className="rounded-xl border border-border/60 bg-card/40 p-4 sm:col-span-2">
+                                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                       {t('characterDetail.fieldCreated')}
+                                    </dt>
+                                    <dd className="mt-1 font-medium text-foreground">
+                                       {formatLocaleDate(character.created, dateLocale)}
+                                    </dd>
+                                 </div>
+                              </dl>
+
+                              <section>
+                                 <h2 className="mb-4 text-xl font-bold text-foreground">
+                                    {t('characterDetail.episodesHeading')}
+                                    {episodes.length > 0 ? (
+                                       <span className="ml-2 text-sm font-semibold text-muted-foreground">
+                                          {t('characterDetail.episodeCount', {
+                                             count: episodes.length,
+                                          })}
+                                       </span>
+                                    ) : null}
+                                 </h2>
+                                 {episodesLoading ? (
+                                    <p className="text-sm font-semibold text-primary">
+                                       {t('characterDetail.episodesLoading')}
+                                    </p>
+                                 ) : episodes.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                       {t('characterDetail.episodesEmpty')}
+                                    </p>
+                                 ) : (
+                                    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                       {episodes.map((episode) => (
+                                          <EpisodeDetailLink key={episode.id} episode={episode} />
+                                       ))}
+                                    </ul>
+                                 )}
+                              </section>
+                           </>
+                        ) : null}
                      </div>
                   </div>
                ) : null}

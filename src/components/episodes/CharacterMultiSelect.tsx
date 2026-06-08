@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedName } from '../../hooks/useDebouncedName';
+import { queryKeys } from '../../hooks/queries/queryKeys';
 import { CharacterService } from '../../services/characters';
 import type { Character } from '../../types/api';
 
@@ -27,7 +28,7 @@ export function CharacterMultiSelect({ selected, onChange }: CharacterMultiSelec
    const selectedIds = useMemo(() => new Set(selected.map((c) => c.id)), [selected]);
 
    const { data, isFetching } = useQuery({
-      queryKey: ['characters', 'multiselect', appliedQuery],
+      queryKey: queryKeys.characters.multiselect(appliedQuery),
       enabled: open,
       queryFn: ({ signal }) =>
          CharacterService.getCharacters(1, appliedQuery ? { name: appliedQuery } : {}, signal),

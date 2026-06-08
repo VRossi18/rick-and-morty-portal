@@ -20,14 +20,20 @@ export const queryKeys = {
    characters: {
       list: (page: number, filters: CharacterListFilters) =>
          ['characters', 'list', page, filters] as const,
+      detail: (id: number) => ['characters', 'detail', id] as const,
+      multiselect: (query: string) => ['characters', 'multiselect', query] as const,
    },
    locations: {
       list: (page: number, filters: LocationListFilters) =>
          ['locations', 'list', page, filters] as const,
+      detail: (id: number) => ['locations', 'detail', id] as const,
+      residents: (locationId: number) => ['locations', 'residents', locationId] as const,
    },
    episodes: {
       list: (page: number, filters: EpisodeListFilters) =>
          ['episodes', 'list', page, filters] as const,
+      detail: (id: number) => ['episodes', 'detail', id] as const,
+      byIds: (ids: number[]) => ['episodes', 'byIds', ids] as const,
       filtered: (
          page: number,
          season: number,

@@ -7,6 +7,7 @@ import { CharacterService } from '../../services/characters';
 import { EpisodeService } from '../../services/episodes';
 import type { Character, Episode } from '../../types/api';
 import { CharacterDetailPage } from '../../pages/CharacterDetailPage';
+import { TestQueryProvider } from '../TestQueryProvider';
 
 vi.mock('../../services/characters', () => ({
    CharacterService: {
@@ -53,11 +54,13 @@ const mockCharacter: Character = {
 
 function renderAt(path: string) {
    return render(
-      <MemoryRouter initialEntries={[path]}>
-         <Routes>
-            <Route path="/character/:id" element={<CharacterDetailPage />} />
-         </Routes>
-      </MemoryRouter>,
+      <TestQueryProvider>
+         <MemoryRouter initialEntries={[path]}>
+            <Routes>
+               <Route path="/character/:id" element={<CharacterDetailPage />} />
+            </Routes>
+         </MemoryRouter>
+      </TestQueryProvider>,
    );
 }
 
@@ -82,7 +85,10 @@ describe('CharacterDetailPage', () => {
 
       expect(await screen.findByRole('heading', { name: 'Morty Smith' })).toBeInTheDocument();
       expect(screen.getByTestId('character-curiosity-panel')).toHaveTextContent('curiosity-2');
-      expect(screen.getByRole('link', { name: /Pilot/i })).toHaveAttribute('href', '/episode/1');
+      expect(await screen.findByRole('link', { name: /Pilot/i })).toHaveAttribute(
+         'href',
+         '/episode/1',
+      );
       expect(EpisodeService.getMultipleEpisodes).toHaveBeenCalledWith([1]);
       const earthLinks = screen.getAllByRole('link', { name: 'Earth' });
       expect(earthLinks[0]).toHaveAttribute('href', '/location/1');

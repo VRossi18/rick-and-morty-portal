@@ -2,8 +2,17 @@ import clsx from 'clsx';
 import { Suspense, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
+import { preloadRoute, type PreloadableRoute } from '../../utils/preloadRoute';
 import { LazyDonationModal, preloadDonationModal } from '../donations/lazyDonationModal';
 import { LanguageSwitcher } from './LanguageSwitcher';
+
+const navPreloadRoutes: Record<string, PreloadableRoute> = {
+   '/about': 'about',
+   '/characters': 'characters',
+   '/episodes': 'episodes',
+   '/locations': 'locations',
+   '/rpg': 'rpg',
+};
 
 const tabClass = ({ isActive }: { isActive: boolean }) =>
    clsx(
@@ -26,21 +35,35 @@ export function AppNavbar() {
       >
          <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4">
             <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:gap-2 md:overflow-x-visible">
-               <NavLink to="/about" className={tabClass}>
-                  {t('nav.about')}
-               </NavLink>
-               <NavLink to="/characters" className={tabClass}>
-                  {t('nav.characters')}
-               </NavLink>
-               <NavLink to="/episodes" className={tabClass}>
-                  {t('nav.episodes')}
-               </NavLink>
-               <NavLink to="/locations" className={tabClass}>
-                  {t('nav.locations')}
-               </NavLink>
-               <NavLink to="/rpg" className={tabClass}>
-                  {t('nav.rpg')}
-               </NavLink>
+               {(
+                  [
+                     ['/about', 'nav.about'],
+                     ['/characters', 'nav.characters'],
+                     ['/episodes', 'nav.episodes'],
+                     ['/locations', 'nav.locations'],
+                     ['/rpg', 'nav.rpg'],
+                  ] as const
+               ).map(([path, labelKey]) => (
+                  <NavLink
+                     key={path}
+                     to={path}
+                     className={tabClass}
+                     onMouseEnter={() => {
+                        const route = navPreloadRoutes[path];
+                        if (route) {
+                           preloadRoute(route);
+                        }
+                     }}
+                     onFocus={() => {
+                        const route = navPreloadRoutes[path];
+                        if (route) {
+                           preloadRoute(route);
+                        }
+                     }}
+                  >
+                     {t(labelKey)}
+                  </NavLink>
+               ))}
             </div>
             <div className="flex shrink-0 items-center gap-2">
                <button
