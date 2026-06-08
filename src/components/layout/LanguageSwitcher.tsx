@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
+import { changePortalLanguage } from '../../i18n';
 
 function FlagBr() {
    return (
@@ -107,7 +108,7 @@ export function LanguageSwitcher() {
             className={btnClass(lng === 'pt')}
             aria-pressed={lng === 'pt'}
             aria-label={t('language.switchToPt')}
-            onClick={() => void i18n.changeLanguage('pt')}
+            onClick={() => void changePortalLanguage('pt')}
          >
             <FlagBr />
          </button>
@@ -116,7 +117,7 @@ export function LanguageSwitcher() {
             className={btnClass(lng === 'en')}
             aria-pressed={lng === 'en'}
             aria-label={t('language.switchToEn')}
-            onClick={() => void i18n.changeLanguage('en')}
+            onClick={() => void changePortalLanguage('en')}
          >
             <FlagUs />
          </button>
@@ -125,7 +126,7 @@ export function LanguageSwitcher() {
             className={btnClass(lng === 'es')}
             aria-pressed={lng === 'es'}
             aria-label={t('language.switchToEs')}
-            onClick={() => void i18n.changeLanguage('es')}
+            onClick={() => void changePortalLanguage('es')}
          >
             <FlagEs />
          </button>

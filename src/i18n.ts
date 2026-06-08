@@ -11,7 +11,7 @@ const localeLoaders: Record<PortalLocale, () => Promise<{ default: Record<string
    es: () => import('./locales/es/common.json'),
 };
 
-function readStoredLocale(): PortalLocale {
+export function readStoredLocale(): PortalLocale {
    if (typeof window === 'undefined') {
       return 'pt';
    }
@@ -39,25 +39,33 @@ export async function ensureLocaleBundle(locale: PortalLocale): Promise<void> {
    i18n.addResourceBundle(locale, 'common', mod.default, true, true);
 }
 
-const initialLocale = readStoredLocale();
+let initPromise: Promise<void> | null = null;
 
-void i18n.use(initReactI18next).init({
-   resources: {},
-   lng: initialLocale,
-   fallbackLng: 'pt',
-   defaultNS: 'common',
-   ns: ['common'],
-   interpolation: { escapeValue: false },
-});
+export function initI18n(): Promise<void> {
+   if (!initPromise) {
+      const locale = readStoredLocale();
+      initPromise = (async () => {
+         await i18n.use(initReactI18next).init({
+            resources: {},
+            lng: locale,
+            fallbackLng: 'pt',
+            defaultNS: 'common',
+            ns: ['common'],
+            interpolation: { escapeValue: false },
+         });
 
-void ensureLocaleBundle(initialLocale).then(() => {
-   syncDocument(i18n.language);
-});
+         await ensureLocaleBundle(locale);
+         await i18n.changeLanguage(locale);
+         syncDocument(i18n.language);
+      })();
+   }
+   return initPromise;
+}
 
-i18n.on('languageChanged', (lang) => {
-   void ensureLocaleBundle(lang as PortalLocale).then(() => {
-      syncDocument(lang);
-   });
-});
+export async function changePortalLanguage(locale: PortalLocale): Promise<void> {
+   await ensureLocaleBundle(locale);
+   await i18n.changeLanguage(locale);
+   syncDocument(locale);
+}
 
 export default i18n;
