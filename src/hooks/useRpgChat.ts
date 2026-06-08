@@ -70,12 +70,9 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
    const messageCounter = useRef(0);
    const openingRequested = useRef(false);
    const [messages, setMessages] = useState<RpgChatUiMessage[]>([]);
-   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-   const messagesRef = useRef(messages);
-   const characterSheetRef = useRef(characterSheet);
+   const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
-   messagesRef.current = messages;
-   characterSheetRef.current = characterSheet;
+   const errorMessage = !isConfigured ? 'AI_NOT_CONFIGURED' : runtimeError;
 
    const nextId = useCallback(() => {
       messageCounter.current += 1;
@@ -86,25 +83,21 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
       mutationFn: () =>
          requestRpgChat({
             locale,
-            characterSheet: characterSheetRef.current,
+            characterSheet,
             messages: [],
             opening: true,
          }),
       onSuccess: (text) => {
          setMessages([{ id: nextId(), role: 'assistant', text }]);
-         setErrorMessage(null);
+         setRuntimeError(null);
       },
       onError: (err) => {
-         setErrorMessage(toRpgErrorMessage(err));
+         setRuntimeError(toRpgErrorMessage(err));
       },
    });
 
    useEffect(() => {
-      if (!isConfigured) {
-         setErrorMessage('AI_NOT_CONFIGURED');
-         return;
-      }
-      if (openingRequested.current) {
+      if (!isConfigured || openingRequested.current) {
          return;
       }
       openingRequested.current = true;
@@ -115,20 +108,22 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
       mutationFn: async ({
          userMessage,
          history,
+         sheet,
       }: {
          userMessage: RpgChatUiMessage;
          history: RpgChatApiMessage[];
+         sheet: CharacterSheetExportDocument;
       }) => {
          const reply = await requestRpgChat({
             locale,
-            characterSheet: characterSheetRef.current,
+            characterSheet: sheet,
             messages: history,
          });
          return { userMessage, reply };
       },
       onMutate: ({ userMessage }) => {
          setMessages((current) => [...current, userMessage]);
-         setErrorMessage(null);
+         setRuntimeError(null);
       },
       onSuccess: ({ reply }) => {
          setMessages((current) => [
@@ -137,7 +132,7 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
          ]);
       },
       onError: (err, { userMessage }) => {
-         setErrorMessage(toRpgErrorMessage(err));
+         setRuntimeError(toRpgErrorMessage(err));
          setMessages((current) => current.filter((message) => message.id !== userMessage.id));
       },
    });
@@ -145,11 +140,7 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
    const sendMessage = useCallback(
       async (rawText: string) => {
          const text = rawText.trim();
-         if (!text) {
-            return;
-         }
-         if (!isConfigured) {
-            setErrorMessage('AI_NOT_CONFIGURED');
+         if (!text || !isConfigured) {
             return;
          }
          if (openingMutation.isPending || sendMutation.isPending) {
@@ -157,20 +148,31 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
          }
 
          const userMessage: RpgChatUiMessage = { id: nextId(), role: 'user', text };
-         const history = toApiMessages([...messagesRef.current, userMessage]).slice(-MAX_HISTORY);
-         await sendMutation.mutateAsync({ userMessage, history });
+         const history = toApiMessages([...messages, userMessage]).slice(-MAX_HISTORY);
+         await sendMutation.mutateAsync({
+            userMessage,
+            history,
+            sheet: characterSheet,
+         });
       },
-      [isConfigured, nextId, openingMutation.isPending, sendMutation],
+      [
+         characterSheet,
+         isConfigured,
+         messages,
+         nextId,
+         openingMutation.isPending,
+         sendMutation,
+      ],
    );
 
    const retry = useCallback(() => {
-      if (messagesRef.current.length === 0) {
-         setErrorMessage(null);
+      if (messages.length === 0) {
+         setRuntimeError(null);
          openingMutation.mutate();
          return;
       }
-      setErrorMessage(null);
-   }, [openingMutation]);
+      setRuntimeError(null);
+   }, [messages.length, openingMutation]);
 
    const isLoading =
       isConfigured && (openingMutation.isPending || sendMutation.isPending);

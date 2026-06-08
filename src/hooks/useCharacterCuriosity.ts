@@ -30,7 +30,14 @@ export function useCharacterCuriosity(characterId: number, language: string) {
       ...curiosityQueryOptions,
    });
 
-   const askMutation = useMutation({
+   const {
+      mutateAsync: askMutateAsync,
+      reset: resetAskMutation,
+      data: askData,
+      isPending: isAskPending,
+      isError: isAskError,
+      error: askError,
+   } = useMutation({
       mutationFn: (question: string) =>
          requestCharacterCuriosity({ characterId, locale, question }),
       onSuccess: (text, question) => {
@@ -43,8 +50,8 @@ export function useCharacterCuriosity(characterId: number, language: string) {
 
    useEffect(() => {
       lastQuestionRef.current = undefined;
-      askMutation.reset();
-   }, [characterId, locale]);
+      resetAskMutation();
+   }, [characterId, locale, resetAskMutation]);
 
    const askQuestion = useCallback(
       async (question: string) => {
@@ -54,26 +61,26 @@ export function useCharacterCuriosity(characterId: number, language: string) {
          }
 
          lastQuestionRef.current = trimmed;
-         await askMutation.mutateAsync(trimmed);
+         await askMutateAsync(trimmed);
       },
-      [askMutation],
+      [askMutateAsync],
    );
 
    const retry = useCallback(async () => {
       if (lastQuestionRef.current) {
-         await askMutation.mutateAsync(lastQuestionRef.current);
+         await askMutateAsync(lastQuestionRef.current);
       } else {
          await initialQuery.refetch();
       }
-   }, [askMutation, initialQuery]);
+   }, [askMutateAsync, initialQuery]);
 
-   const text = askMutation.data ?? initialQuery.data ?? null;
+   const text = askData ?? initialQuery.data ?? null;
    const isLoading =
       isConfigured &&
-      ((initialQuery.isPending && !initialQuery.data) || askMutation.isPending);
+      ((initialQuery.isPending && !initialQuery.data) || isAskPending);
    const errorMessage =
-      askMutation.isError
-         ? toCuriosityErrorMessage(askMutation.error)
+      isAskError
+         ? toCuriosityErrorMessage(askError)
          : initialQuery.isError
            ? toCuriosityErrorMessage(initialQuery.error)
            : null;
