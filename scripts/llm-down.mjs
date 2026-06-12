@@ -1,11 +1,16 @@
-import { containerNames, run, stopOllamaContainer } from './llm-podman.mjs';
+import {
+   containerExists,
+   resolveRuntime,
+   runtimeLabel,
+   stopOllamaContainer,
+   tryComposeDown,
+} from './llm-runtime.mjs';
 
-try {
-   run('podman compose down');
-} catch {
-   // compose provider may be missing
-}
+resolveRuntime();
+console.log(`Using container runtime: ${runtimeLabel()}`);
 
-if (containerNames()) {
+tryComposeDown();
+
+if (containerExists()) {
    stopOllamaContainer();
 }

@@ -5,9 +5,23 @@ export default mergeConfig(
    viteConfig,
    defineConfig({
       test: {
-         environment: 'jsdom',
-         setupFiles: ['./src/tests/setup.ts'],
-         include: ['src/tests/**/*.{test,spec}.{ts,tsx}'],
+         projects: [
+            {
+               test: {
+                  name: 'frontend',
+                  environment: 'jsdom',
+                  setupFiles: ['./src/tests/setup.ts'],
+                  include: ['src/tests/**/*.{test,spec}.{ts,tsx}'],
+               },
+            },
+            {
+               test: {
+                  name: 'scripts',
+                  environment: 'node',
+                  include: ['scripts/**/*.test.mjs'],
+               },
+            },
+         ],
       },
    }),
 );

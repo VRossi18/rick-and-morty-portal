@@ -1,13 +1,22 @@
-import { CONTAINER_NAME, DEFAULT_MODEL, isContainerRunning, pullDefaultModel, run } from './llm-podman.mjs';
+import {
+   CONTAINER_NAME,
+   DEFAULT_MODEL,
+   isContainerRunning,
+   pullDefaultModel,
+   resolveRuntime,
+   runtimeLabel,
+   tryComposePull,
+} from './llm-runtime.mjs';
+
+resolveRuntime();
+console.log(`Using container runtime: ${runtimeLabel()}`);
 
 if (!isContainerRunning()) {
-   console.error(`Ollama is not running. Start it with: pnpm run llm:up`);
+   console.error('Ollama is not running. Start it with: pnpm run llm:up');
    process.exit(1);
 }
 
-try {
-   run(`podman compose exec ollama ollama pull ${DEFAULT_MODEL}`);
-} catch {
+if (!tryComposePull()) {
    pullDefaultModel();
 }
 

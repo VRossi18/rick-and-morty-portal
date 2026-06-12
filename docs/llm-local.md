@@ -1,10 +1,10 @@
-# Local LLM (Ollama + Podman)
+# Local LLM (Ollama + Docker or Podman)
 
-Development uses **Ollama** in Podman. Production uses **Groq** on Fly.io — see [fly-deploy.md](fly-deploy.md).
+Development uses **Ollama** in a container (Docker or Podman). Production uses **Groq** on Fly.io — see [fly-deploy.md](fly-deploy.md).
 
 ## Prerequisites
 
-- [Podman](https://podman.io/) 4+ with Compose support (`podman compose`)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) **or** [Podman](https://podman.io/) 4+ with Compose support (`docker compose` / `podman compose`)
 - Node 24+, pnpm 10 (see root [README](../README.md))
 - ~8 GB RAM recommended for the default model (`llama3.1:8b`)
 
@@ -20,6 +20,8 @@ pnpm run dev:all
 
 Open `http://localhost:5173`, then try `/character/1` or `/episode/1` and use the **Curiosity** card, or play the RPG at `/rpg` → **Start game** → `/rpg/play`.
 
+`pnpm run llm:up` logs the chosen runtime, for example `Using container runtime: docker (auto)`.
+
 ## Scripts
 
 | Command | Description |
@@ -28,7 +30,21 @@ Open `http://localhost:5173`, then try `/character/1` or `/episode/1` and use th
 | `pnpm run llm:down` | Stop Ollama container |
 | `pnpm run llm:pull` | Pull default model (`llama3.1:8b`) into the container |
 
-Scripts try `podman compose` first; if the compose provider is missing (common on Windows), they fall back to `podman run` with container name `rick-morty-ollama`.
+Scripts try `compose up` first; if the compose provider is missing (common on Windows), they fall back to `docker run` / `podman run` with container name `rick-morty-ollama`.
+
+## Container runtime (`LLM_RUNTIME`)
+
+Set in `.env` or the shell before `pnpm run llm:*`:
+
+| Value | Behavior |
+|-------|----------|
+| `auto` (default) | Detect Docker/Podman; prefer an existing `rick-morty-ollama` container; if both are installed, prefer Podman |
+| `docker` | Force Docker |
+| `podman` | Force Podman |
+
+```env
+LLM_RUNTIME=docker
+```
 
 ## Environment (local)
 
@@ -40,6 +56,7 @@ LLM_MODEL=llama3.1:8b
 LLM_API_KEY=ollama
 LLM_TOOLS_ENABLED=true
 LLM_TOOL_MAX_STEPS=5
+# LLM_RUNTIME=auto
 VITE_AI_API_URL=/api/ai/character-curiosity
 ALLOWED_ORIGINS=http://localhost:5173
 ```
@@ -86,12 +103,29 @@ Without Ollama and without `pnpm run dev:all`, curiosity panels and RPG chat sho
 | Slow first response | Normal on CPU; 8b model needs more RAM; RPG sends full character sheet JSON |
 | RPG opening never loads | Use `dev:all`, not `dev` alone; check BFF on `:8080` |
 | Out of memory | Close other apps or set `LLM_TOOLS_ENABLED=false` and try a smaller model |
-| `podman compose` provider missing | Scripts auto-fallback to `podman run`; or install `podman-compose` |
+| Wrong runtime picked (both installed) | Set `LLM_RUNTIME=docker` or `LLM_RUNTIME=podman` in `.env` |
+| `compose` provider missing | Scripts auto-fallback to `run`; or install Docker Desktop / `podman-compose` |
+| No container runtime found | Install Docker or Podman; see error message from `pnpm run llm:up` |
 
 Verify Ollama:
 
 ```bash
 curl http://localhost:11434/api/tags
+```
+
+## Manual verification checklist
+
+```bash
+# Docker
+LLM_RUNTIME=docker pnpm run llm:up
+LLM_RUNTIME=docker pnpm run llm:pull
+
+# Podman
+LLM_RUNTIME=podman pnpm run llm:up
+pnpm run llm:pull
+
+# Auto (reads .env or detects installed runtime)
+pnpm run llm:up
 ```
 
 ## Production

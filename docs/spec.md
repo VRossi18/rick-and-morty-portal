@@ -8,7 +8,7 @@ BFF contract for LLM-generated fun facts on **`/character/:id`** and **`/episode
 
 | Profile | LLM | Where configured |
 |---------|-----|------------------|
-| **Local** | Ollama (Podman) | [`.env.example`](../.env.example), [`docs/llm-local.md`](llm-local.md) |
+| **Local** | Ollama (Docker or Podman) | [`.env.example`](../.env.example), [`docs/llm-local.md`](llm-local.md) |
 | **Production** | Groq | Fly secrets — see [`docs/fly-deploy.md`](fly-deploy.md) |
 
 Same BFF code uses the OpenAI-compatible SDK with `LLM_BASE_URL`, `LLM_MODEL`, and a resolved API key (`resolveLlmApiKey` in [`server/src/config.ts`](../server/src/config.ts)). Local Ollama accepts a dummy key (`ollama`) when the base URL is localhost, `127.0.0.1`, or host `ollama`.

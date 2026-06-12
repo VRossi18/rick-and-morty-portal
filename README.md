@@ -72,7 +72,7 @@ The production build runs [`scripts/copy-404.mjs`](scripts/copy-404.mjs) after V
 | ---------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------- |
 | **GitHub Pages** | Static `dist` from the main Vite build (`base`: `/rick-and-morty-portal/`) | Project-site URL under the repo name                                  |
 | **Fly.io**       | API-only Node container ([`Dockerfile`](Dockerfile), [`fly.toml`](fly.toml)): `/api/ai/*`, `/health` | Scale-to-zero; Groq via Fly secrets; deploy via Fly ↔ GitHub |
-| **Local (dev)**  | Ollama in Podman + BFF on `:8080`                                    | See [`docs/llm-local.md`](docs/llm-local.md)                          |
+| **Local (dev)**  | Ollama in Docker/Podman + BFF on `:8080`                            | See [`docs/llm-local.md`](docs/llm-local.md)                          |
 
 GitHub Actions secret: `AI_API_URL` (absolute Fly BFF URL for the Pages build). Fly secrets: `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `ALLOWED_ORIGINS`. See [`docs/fly-deploy.md`](docs/fly-deploy.md) and [`docs/spec.md`](docs/spec.md). To remove old GCP resources, see [`docs/gcp-teardown.md`](docs/gcp-teardown.md).
 
@@ -197,7 +197,7 @@ VITE_WALLETCONNECT_PROJECT_ID=
 
 ## Getting started
 
-**Prerequisites:** Node **24** or newer, **pnpm** 10 (within the range declared in `package.json`). For AI curiosities locally, install **[Podman](https://podman.io/)** (Ollama runs in a container).
+**Prerequisites:** Node **24** or newer, **pnpm** 10 (within the range declared in `package.json`). For AI curiosities locally, install **[Docker](https://www.docker.com/products/docker-desktop/)** or **[Podman](https://podman.io/)** (Ollama runs in a container).
 
 ```bash
 git clone https://github.com/VRossi18/rick-and-morty-portal.git
@@ -226,7 +226,7 @@ More detail: [`docs/llm-local.md`](docs/llm-local.md), [`docs/spec.md`](docs/spe
 | `pnpm dev`                     | Start dev server with HMR (UI only; no BFF)                                                                                 |
 | `pnpm dev:all`                 | BFF on `:8080` + Vite on `:5173` (proxy `/api` → server)                                                                    |
 | `pnpm run server:dev`          | API only on port 8080                                                                                                       |
-| `pnpm run llm:up`              | Start Ollama container (Podman Compose)                                                                                     |
+| `pnpm run llm:up`              | Start Ollama container (Docker or Podman; auto-detect)                                                                      |
 | `pnpm run llm:down`            | Stop Ollama container                                                                                                       |
 | `pnpm run llm:pull`            | Pull default local model (`llama3.1:8b`)                                                                                    |
 | `pnpm build`                   | Typecheck, Vite production build, then copy `dist/index.html` → `dist/404.html` for SPA hosting                             |

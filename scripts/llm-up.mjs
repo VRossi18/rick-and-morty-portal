@@ -1,6 +1,14 @@
-import { startOllamaContainer, tryPodmanComposeUp } from './llm-podman.mjs';
+import {
+   resolveRuntime,
+   runtimeLabel,
+   startOllamaContainer,
+   tryComposeUp,
+} from './llm-runtime.mjs';
 
-if (!tryPodmanComposeUp()) {
-   console.log('podman compose unavailable; using podman run fallback.');
+resolveRuntime();
+console.log(`Using container runtime: ${runtimeLabel()}`);
+
+if (!tryComposeUp()) {
+   console.log('compose unavailable; using container run fallback.');
    startOllamaContainer();
 }

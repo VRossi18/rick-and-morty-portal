@@ -1,7 +1,7 @@
 services:
   ollama:
     container_name: rick-morty-ollama
-    image: docker.io/ollama/ollama:latest
+    image: ollama/ollama:latest
     ports:
       - '11434:11434'
     volumes:
