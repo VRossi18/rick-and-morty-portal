@@ -20,6 +20,14 @@ interface RpgChatApiMessage {
    content: string;
 }
 
+type SendMutationVariables = {
+   userMessage: RpgChatUiMessage;
+   history: RpgChatApiMessage[];
+   sheet: CharacterSheetExportDocument;
+};
+
+type LastFailedRequest = { type: 'opening' } | ({ type: 'send' } & SendMutationVariables);
+
 async function requestRpgChat(options: {
    locale: CuriosityLocale;
    characterSheet: CharacterSheetExportDocument;
@@ -69,6 +77,7 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
    const idPrefix = useId();
    const messageCounter = useRef(0);
    const openingRequested = useRef(false);
+   const lastFailedRequestRef = useRef<LastFailedRequest | null>(null);
    const [messages, setMessages] = useState<RpgChatUiMessage[]>([]);
    const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
@@ -88,10 +97,12 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
             opening: true,
          }),
       onSuccess: (text) => {
+         lastFailedRequestRef.current = null;
          setMessages([{ id: nextId(), role: 'assistant', text }]);
          setRuntimeError(null);
       },
       onError: (err) => {
+         lastFailedRequestRef.current = { type: 'opening' };
          setRuntimeError(toRpgErrorMessage(err));
       },
    });
@@ -105,15 +116,7 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
    }, [isConfigured, openingMutation]);
 
    const sendMutation = useMutation({
-      mutationFn: async ({
-         userMessage,
-         history,
-         sheet,
-      }: {
-         userMessage: RpgChatUiMessage;
-         history: RpgChatApiMessage[];
-         sheet: CharacterSheetExportDocument;
-      }) => {
+      mutationFn: async ({ userMessage, history, sheet }: SendMutationVariables) => {
          const reply = await requestRpgChat({
             locale,
             characterSheet: sheet,
@@ -126,14 +129,18 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
          setRuntimeError(null);
       },
       onSuccess: ({ reply }) => {
+         lastFailedRequestRef.current = null;
          setMessages((current) => [
             ...current,
             { id: nextId(), role: 'assistant', text: reply },
          ]);
       },
-      onError: (err, { userMessage }) => {
+      onError: (err, variables) => {
+         lastFailedRequestRef.current = { type: 'send', ...variables };
          setRuntimeError(toRpgErrorMessage(err));
-         setMessages((current) => current.filter((message) => message.id !== userMessage.id));
+         setMessages((current) =>
+            current.filter((message) => message.id !== variables.userMessage.id),
+         );
       },
    });
 
@@ -166,13 +173,20 @@ export function useRpgChat(characterSheet: CharacterSheetExportDocument, languag
    );
 
    const retry = useCallback(() => {
-      if (messages.length === 0) {
-         setRuntimeError(null);
-         openingMutation.mutate();
+      setRuntimeError(null);
+      const failed = lastFailedRequestRef.current;
+
+      if (failed?.type === 'send') {
+         void sendMutation.mutateAsync({
+            userMessage: failed.userMessage,
+            history: failed.history,
+            sheet: failed.sheet,
+         });
          return;
       }
-      setRuntimeError(null);
-   }, [messages.length, openingMutation]);
+
+      openingMutation.mutate();
+   }, [openingMutation, sendMutation]);
 
    const isLoading =
       isConfigured && (openingMutation.isPending || sendMutation.isPending);

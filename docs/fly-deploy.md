@@ -38,7 +38,7 @@ fly secrets set \
 |--------|--------|
 | `AI_API_URL` | `https://rick-morty-portal-api.fly.dev/api/ai/character-curiosity` |
 
-Episode curiosities derive the URL in the frontend (`character-curiosity` → `episode-curiosity`).
+Episode curiosities and **RPG chat** derive URLs in the frontend (`character-curiosity` → `episode-curiosity` / `rpg-chat`). No extra GitHub secret is needed for RPG.
 
 7. Remove obsolete secrets: `GCP_*`, `FLY_API_TOKEN` (if deploy is Fly dashboard only), `LLM_API_KEY` on GitHub (Groq key stays on Fly only).
 
@@ -61,10 +61,11 @@ Run once after setup or when changing app/domain:
 4. GitHub secret `AI_API_URL` points to the Fly BFF character endpoint.
 5. Push to `main` → Actions publishes Pages; Fly redeploys API.
 6. Open `https://vrossi18.github.io/rick-and-morty-portal/characters`, open a character/episode detail, test **Curiosity**.
-7. DevTools: POST goes to `*.fly.dev`, no CORS errors.
-8. If `503`: check `LLM_API_KEY` on Fly. If CORS: check `ALLOWED_ORIGINS`.
-9. Groq key from [console.groq.com](https://console.groq.com); free tier has limits — BFF cache (1h) reduces calls.
-10. Old GCP resources: [`gcp-teardown.md`](gcp-teardown.md).
+7. Test RPG: `/rpg` → create character → **Start game** → `/rpg/play` (GM opening + one player turn).
+8. DevTools: POST goes to `*.fly.dev`, no CORS errors.
+9. If `503`: check `LLM_API_KEY` on Fly. If CORS: check `ALLOWED_ORIGINS`.
+10. Groq key from [console.groq.com](https://console.groq.com); free tier has limits — BFF cache (1h) reduces curiosity calls (RPG chat is not cached).
+11. Old GCP resources: [`gcp-teardown.md`](gcp-teardown.md).
 
 ## Local API-only mode
 

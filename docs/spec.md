@@ -222,6 +222,8 @@ Powers the GM chat at **`/rpg/play`**. The character sheet JSON (export schema v
 2. [`useRpgChat`](../src/hooks/useRpgChat.ts) requests opening, then player turns
 3. API URL: derived from `VITE_AI_API_URL` (`character-curiosity` → `rpg-chat`) or `/api/ai/rpg-chat` locally
 
+**Caching:** RPG chat does **not** use BFF or client cache — each turn is a fresh LLM request. Curiosities use 1h cache on both layers (see above).
+
 Local dev: `pnpm run dev:all` + Ollama (see [`llm-local.md`](llm-local.md)). Production: same Fly secrets as other AI endpoints.
 
 ## Out of scope (v1)
