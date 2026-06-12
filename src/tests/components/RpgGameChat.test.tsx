@@ -50,34 +50,22 @@ const sampleSheet: CharacterSheetExportDocument = {
          attacks: [
             { id: 'attack1', name: 'A1', summary: '' },
             { id: 'attack2', name: 'A2', summary: '' },
-            { id: 'attack3', name: 'A3', summary: '' },
          ],
-         defenses: [
-            { id: 'defense1', name: 'D1', summary: '' },
-            { id: 'defense2', name: 'D2', summary: '' },
-            { id: 'defense3', name: 'D3', summary: '' },
-         ],
-         knowledge: [
-            { id: 'knowledge1', name: 'K1', summary: '' },
-            { id: 'knowledge2', name: 'K2', summary: '' },
-            { id: 'knowledge3', name: 'K3', summary: '' },
-         ],
+         support: { id: 'support', name: 'S', summary: '' },
+         item: { id: 'item', name: 'I', summary: '', outOfCombat: '' },
       },
    },
-   abilities: {
-      scores: { str: 8, dex: 8, con: 8, int: 8, cha: 8 },
-      racialBonus: { str: 0, dex: 0, con: 0, int: 0, cha: 0 },
-      totals: { str: 8, dex: 8, con: 8, int: 8, cha: 8 },
-      highTotalFlags: { str: false, dex: false, con: false, int: false, cha: false },
-   },
    derived: {
-      hitPoints: 0,
-      physicalAttack: 0,
-      magicalAttack: 0,
-      socialPool: 0,
-      dexSpeed: 0,
-      stealth: 0,
+      hitPointsMax: 12,
+      physicalAttackRating: 10,
+      magicalAttackRating: 10,
+      socialInfluencePool: 10,
+      dexSpeedTier: 0,
+      extraStrikesBeforeEnemy: 0,
+      stealthRating: 10,
+      stealthRacialBonus: 0,
    },
+   abilities: [],
 };
 
 vi.mock('../../config/ai', async (importOriginal) => {
