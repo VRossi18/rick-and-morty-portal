@@ -205,7 +205,7 @@ cd rick-and-morty-portal
 pnpm install
 cp .env.example .env
 pnpm run llm:up          # start Ollama (optional — skip for UI-only)
-pnpm run llm:pull          # first time only — downloads llama3.2:3b
+pnpm run llm:pull          # first time only — downloads llama3.1:8b
 pnpm run dev:all           # BFF :8080 + Vite :5173
 ```
 
@@ -228,7 +228,7 @@ More detail: [`docs/llm-local.md`](docs/llm-local.md), [`docs/spec.md`](docs/spe
 | `pnpm run server:dev`          | API only on port 8080                                                                                                       |
 | `pnpm run llm:up`              | Start Ollama container (Podman Compose)                                                                                     |
 | `pnpm run llm:down`            | Stop Ollama container                                                                                                       |
-| `pnpm run llm:pull`            | Pull default local model (`llama3.2:3b`)                                                                                    |
+| `pnpm run llm:pull`            | Pull default local model (`llama3.1:8b`)                                                                                    |
 | `pnpm build`                   | Typecheck, Vite production build, then copy `dist/index.html` → `dist/404.html` for SPA hosting                             |
 | `pnpm preview`                 | Preview the production build locally                                                                                        |
 | `pnpm lint`                    | Run ESLint on the project                                                                                                   |

@@ -15,6 +15,17 @@ export async function fetchCharacterById(characterId: number): Promise<ApiCharac
    return (await response.json()) as ApiCharacter;
 }
 
+export async function fetchCharactersByName(name: string): Promise<ApiCharacter[]> {
+   const params = new URLSearchParams({ name: name.trim() });
+   const response = await fetch(`${API_BASE}/character/?${params.toString()}`);
+   if (!response.ok) {
+      throw new Error('CHARACTER_FETCH_FAILED');
+   }
+
+   const data = (await response.json()) as { results?: ApiCharacter[] };
+   return data.results ?? [];
+}
+
 export async function fetchEpisodeById(episodeId: number): Promise<ApiEpisode> {
    const response = await fetch(`${API_BASE}/episode/${episodeId}`);
    if (response.status === 404) {

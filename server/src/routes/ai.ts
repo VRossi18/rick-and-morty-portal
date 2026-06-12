@@ -56,6 +56,9 @@ function mapLlmError(err: unknown) {
    if (code === 'INVALID_RPG_CHAT_REQUEST') {
       return { status: 400 as const, body: { error: 'Invalid RPG chat request' } };
    }
+   if (code === 'TOOL_LOOP_EXCEEDED') {
+      return { status: 502 as const, body: { error: 'Failed to generate RPG reply' } };
+   }
    return null;
 }
 

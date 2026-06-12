@@ -14,6 +14,24 @@ export function getLlmModel(): string {
    return process.env.LLM_MODEL?.trim() || 'llama-3.3-70b-versatile';
 }
 
+const DEFAULT_LLM_TOOL_MAX_STEPS = 5;
+
+export function isLlmToolsEnabled(): boolean {
+   const raw = process.env.LLM_TOOLS_ENABLED?.trim().toLowerCase();
+   if (!raw) {
+      return false;
+   }
+   return raw === 'true' || raw === '1' || raw === 'yes';
+}
+
+export function getLlmToolMaxSteps(): number {
+   const parsed = Number(process.env.LLM_TOOL_MAX_STEPS);
+   if (!Number.isFinite(parsed) || parsed < 1) {
+      return DEFAULT_LLM_TOOL_MAX_STEPS;
+   }
+   return Math.floor(parsed);
+}
+
 export const CACHE_TTL_MS = 60 * 60 * 1000;
 
 export function isLocalLlmEndpoint(url?: string): boolean {

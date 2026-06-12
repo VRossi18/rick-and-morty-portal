@@ -25,6 +25,8 @@ fly secrets set \
   LLM_API_KEY=gsk_your_groq_key \
   LLM_BASE_URL=https://api.groq.com/openai/v1 \
   LLM_MODEL=llama-3.3-70b-versatile \
+  LLM_TOOLS_ENABLED=true \
+  LLM_TOOL_MAX_STEPS=5 \
   ALLOWED_ORIGINS=https://vrossi18.github.io
 ```
 
@@ -56,7 +58,7 @@ curl https://rick-morty-portal-api.fly.dev/health
 Run once after setup or when changing app/domain:
 
 1. Fly app name matches [`fly.toml`](../fly.toml) (`rick-morty-portal-api`).
-2. Fly secrets set: `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `ALLOWED_ORIGINS`.
+2. Fly secrets set: `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `ALLOWED_ORIGINS` (optional: `LLM_TOOLS_ENABLED`, `LLM_TOOL_MAX_STEPS`).
 3. `curl https://rick-morty-portal-api.fly.dev/health` → `ok`.
 4. GitHub secret `AI_API_URL` points to the Fly BFF character endpoint.
 5. Push to `main` → Actions publishes Pages; Fly redeploys API.

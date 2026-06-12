@@ -12,6 +12,12 @@ export interface RpgChatMessage {
    content: string;
 }
 
+const TOOL_INSTRUCTIONS = [
+   'Use roll_dice for any die roll; never invent random numbers.',
+   'Use lookup_character and lookup_episode for canon facts from the Rick and Morty API when relevant.',
+   'After tool results, narrate outcomes in character as the GM.',
+];
+
 export function buildRpgGmSystemPrompt(locale: CuriosityLocale, characterSheet: unknown): string {
    const language = LOCALE_LABELS[locale];
    return [
@@ -22,6 +28,7 @@ export function buildRpgGmSystemPrompt(locale: CuriosityLocale, characterSheet: 
       'Lean into Rick and Morty tone: sci-fi chaos, dark humor, multiverse weirdness — but keep it playable and fair.',
       'Never break character as the GM. Do not mention being an AI.',
       'When the player acts, describe outcomes and ask what they do next when appropriate.',
+      ...TOOL_INSTRUCTIONS,
       '',
       'Character sheet (JSON):',
       JSON.stringify(characterSheet),

@@ -2,11 +2,16 @@ import OpenAI from 'openai';
 import {
    getLlmBaseUrl,
    getLlmModel,
+   getLlmToolMaxSteps,
    isLlmConfigured,
+   isLlmToolsEnabled,
    resolveLlmApiKey,
 } from '../config.js';
 import { buildRpgGmChatMessages, type RpgChatMessage } from '../prompts/rpgGm.js';
 import type { CuriosityLocale } from '../types/character.js';
+import { runLlmWithTools } from './runLlmWithTools.js';
+import { executeRpgTool } from '../tools/executeRpgTool.js';
+import { RPG_GM_TOOLS } from '../tools/rpgGmTools.js';
 
 export interface RpgChatResult {
    text: string;
@@ -50,6 +55,25 @@ export async function generateRpgGmReply(options: {
 
    const client = new OpenAI({ apiKey: apiKey!, baseURL: getLlmBaseUrl() });
    const chatMessages = buildRpgGmChatMessages(options);
+
+   if (isLlmToolsEnabled()) {
+      let text: string;
+      try {
+         text = await runLlmWithTools({
+            client,
+            model: getLlmModel(),
+            messages: chatMessages,
+            tools: RPG_GM_TOOLS,
+            executeTool: executeRpgTool,
+            maxSteps: getLlmToolMaxSteps(),
+            temperature: 0.75,
+            maxTokens: 400,
+         });
+      } catch (err) {
+         mapLlmApiError(err);
+      }
+      return { text };
+   }
 
    let completion: OpenAI.Chat.Completions.ChatCompletion;
    try {

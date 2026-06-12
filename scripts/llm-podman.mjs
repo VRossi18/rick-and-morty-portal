@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 
 export const CONTAINER_NAME = 'rick-morty-ollama';
 export const OLLAMA_IMAGE = 'docker.io/ollama/ollama:latest';
-export const DEFAULT_MODEL = 'llama3.2:3b';
+export const DEFAULT_MODEL = 'llama3.1:8b';
 
 export function run(command) {
    execSync(command, { stdio: 'inherit' });

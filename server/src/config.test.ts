@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+   getLlmToolMaxSteps,
    isLocalLlmEndpoint,
    isLlmConfigured,
+   isLlmToolsEnabled,
    resolveLlmApiKey,
 } from './config.js';
 
@@ -50,5 +52,48 @@ describe('resolveLlmApiKey', () => {
       vi.stubEnv('LLM_API_KEY', 'custom');
       vi.stubEnv('LLM_BASE_URL', 'http://localhost:11434/v1');
       expect(resolveLlmApiKey()).toBe('custom');
+   });
+});
+
+describe('isLlmToolsEnabled', () => {
+   afterEach(() => {
+      vi.unstubAllEnvs();
+   });
+
+   it('defaults to false when unset', () => {
+      vi.stubEnv('LLM_TOOLS_ENABLED', '');
+      expect(isLlmToolsEnabled()).toBe(false);
+   });
+
+   it('recognizes true values', () => {
+      vi.stubEnv('LLM_TOOLS_ENABLED', 'true');
+      expect(isLlmToolsEnabled()).toBe(true);
+      vi.stubEnv('LLM_TOOLS_ENABLED', '1');
+      expect(isLlmToolsEnabled()).toBe(true);
+      vi.stubEnv('LLM_TOOLS_ENABLED', 'yes');
+      expect(isLlmToolsEnabled()).toBe(true);
+   });
+
+   it('rejects other values', () => {
+      vi.stubEnv('LLM_TOOLS_ENABLED', 'false');
+      expect(isLlmToolsEnabled()).toBe(false);
+   });
+});
+
+describe('getLlmToolMaxSteps', () => {
+   afterEach(() => {
+      vi.unstubAllEnvs();
+   });
+
+   it('defaults to 5 when unset or invalid', () => {
+      vi.stubEnv('LLM_TOOL_MAX_STEPS', '');
+      expect(getLlmToolMaxSteps()).toBe(5);
+      vi.stubEnv('LLM_TOOL_MAX_STEPS', '0');
+      expect(getLlmToolMaxSteps()).toBe(5);
+   });
+
+   it('uses configured positive integer', () => {
+      vi.stubEnv('LLM_TOOL_MAX_STEPS', '3');
+      expect(getLlmToolMaxSteps()).toBe(3);
    });
 });

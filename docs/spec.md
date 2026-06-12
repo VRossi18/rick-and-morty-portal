@@ -114,8 +114,10 @@ Local dev: `/api/ai/character-curiosity` (Vite proxy → localhost:8080).
 | Variable | Example |
 |----------|---------|
 | `LLM_BASE_URL` | `http://localhost:11434/v1` |
-| `LLM_MODEL` | `llama3.2:3b` |
+| `LLM_MODEL` | `llama3.1:8b` |
 | `LLM_API_KEY` | `ollama` (or omit — auto for local endpoint) |
+| `LLM_TOOLS_ENABLED` | `true` (RPG GM function calling; optional) |
+| `LLM_TOOL_MAX_STEPS` | `5` (max tool loop iterations) |
 | `ALLOWED_ORIGINS` | `http://localhost:5173` |
 
 ### Server — production (Fly secrets)
@@ -125,6 +127,8 @@ Local dev: `/api/ai/character-curiosity` (Vite proxy → localhost:8080).
 | `LLM_API_KEY` | `gsk_...` (Groq) |
 | `LLM_BASE_URL` | `https://api.groq.com/openai/v1` |
 | `LLM_MODEL` | `llama-3.3-70b-versatile` |
+| `LLM_TOOLS_ENABLED` | `true` (optional — RPG GM tools on Groq) |
+| `LLM_TOOL_MAX_STEPS` | `5` |
 | `ALLOWED_ORIGINS` | `https://vrossi18.github.io` (exact origin, no path) |
 | `SERVE_STATIC` | `false` on Fly |
 | `PORT` | `8080` |
@@ -223,6 +227,18 @@ Powers the GM chat at **`/rpg/play`**. The character sheet JSON (export schema v
 3. API URL: derived from `VITE_AI_API_URL` (`character-curiosity` → `rpg-chat`) or `/api/ai/rpg-chat` locally
 
 **Caching:** RPG chat does **not** use BFF or client cache — each turn is a fresh LLM request. Curiosities use 1h cache on both layers (see above).
+
+### LLM tools (RPG GM)
+
+When `LLM_TOOLS_ENABLED=true`, the BFF runs an agent loop (`runLlmWithTools`) for RPG chat only. The model may call:
+
+| Tool | Purpose |
+|------|---------|
+| `roll_dice` | Parse notation (`1d20+3`) and return rolls + total |
+| `lookup_character` | Rick and Morty API name search (top 3 matches) |
+| `lookup_episode` | Episode facts by id |
+
+Tool execution is allowlisted on the server; errors return `{ error: "..." }` to the model without breaking the HTTP contract. The frontend still receives only `{ text }`.
 
 Local dev: `pnpm run dev:all` + Ollama (see [`llm-local.md`](llm-local.md)). Production: same Fly secrets as other AI endpoints.
 

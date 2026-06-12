@@ -11,6 +11,7 @@ describe('rpgGm prompts', () => {
       expect(buildRpgGmSystemPrompt('pt', sampleSheet)).toContain('português do Brasil');
       expect(buildRpgGmSystemPrompt('en', sampleSheet)).toContain('English');
       expect(buildRpgGmSystemPrompt('pt', sampleSheet)).toContain('Morty');
+      expect(buildRpgGmSystemPrompt('en', sampleSheet)).toContain('roll_dice');
    });
 
    it('builds opening messages with system and scene prompt', () => {
